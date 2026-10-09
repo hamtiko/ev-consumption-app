@@ -198,6 +198,8 @@ private struct ChargingForm: View {
                     DecimalField(title: "Energy added", unit: "kWh", text: $session.energy).focused($focused)
                     DecimalField(title: "Total paid", unit: "AMD", text: $session.cost).focused($focused)
                     Button("Remove session", role: .destructive) { earlier.removeAll { $0.id == session.id } }
+                        // Prevent Form's automatic button style from making the entire session row tappable.
+                        .buttonStyle(.borderless)
                 }
                 .padding(.vertical, 5)
             }
