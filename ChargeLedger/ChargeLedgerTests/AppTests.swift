@@ -1,0 +1,49 @@
+import XCTest
+import SwiftData
+import UserNotifications
+import ChargeLedgerCore
+@testable import ChargeLedger
+
+@MainActor
+final class AppTests: XCTestCase {
+    func testSwiftDataRoundTripRetainsPriceOverrideAndLink() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, configurations: config)
+        let context = ModelContext(container)
+        let charge = Charge(date: .now, energy: 20, cost: 1500)
+        let reading = Reading(date: charge.date, t1: 100, t2: 200, averageRate: 51,
+                              closesCycle: true, tripB: 500, battery: 100)
+        let checkpoint = Checkpoint(reading: reading, linkedChargeID: charge.id)
+        context.insert(checkpoint); context.insert(OutsideCharge(charge: charge)); try context.save()
+        let reloaded = try XCTUnwrap(context.fetch(FetchDescriptor<Checkpoint>()).first)
+        XCTAssertEqual(reloaded.reading.averageRate, 51)
+        XCTAssertEqual(reloaded.linkedChargeID, charge.id)
+        XCTAssertEqual(reloaded.reading, reading)
+        reloaded.update(with: Reading(id: reading.id, date: reading.date, t1: 100, t2: 200,
+                                     averageRate: 55, closesCycle: true, tripB: 500, battery: 100))
+        try context.save()
+        XCTAssertEqual(reloaded.reading.averageRate, 55)
+    }
+
+    func testExportPreservesQuotesPricesAndLinkedSession() {
+        let charge = Charge(date: .now, energy: Decimal(string: "12.6")!, cost: 0, location: "Station, \"North\"")
+        let checkpoint = Checkpoint(reading: Reading(date: charge.date, t1: 10, t2: 20, averageRate: 49), linkedChargeID: charge.id)
+        let csv = CSVExport.make(readings: [checkpoint], charges: [OutsideCharge(charge: charge)])
+        XCTAssertTrue(csv.contains("\"Station, \"\"North\"\"\""))
+        XCTAssertTrue(csv.contains("\"49\""))
+        XCTAssertTrue(csv.contains(charge.id.uuidString))
+        XCTAssertTrue(csv.hasPrefix("\u{FEFF}"))
+    }
+
+    func testMonthlyNotificationTriggerHasNextOccurrenceOnFirst() throws {
+        var components = DateComponents()
+        components.day = 1; components.hour = 9; components.minute = 0
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let next = try XCTUnwrap(trigger.nextTriggerDate())
+        XCTAssertEqual(Calendar.current.component(.day, from: next), 1)
+        XCTAssertEqual(Calendar.current.component(.hour, from: next), 9)
+        XCTAssertEqual(Calendar.current.component(.minute, from: next), 0)
+        XCTAssertTrue(trigger.repeats)
+        XCTAssertNil(trigger.dateComponents.timeZone)
+    }
+}

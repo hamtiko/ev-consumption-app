@@ -1,0 +1,500 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		C62C71BF1783C48D413307B3 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "ChargeLedgerApp.swift";
+			sourceTree = "<group>";
+		};
+		1F2F48CC99FD1A8510A890B5 = {
+			isa = "PBXBuildFile";
+			fileRef = "C62C71BF1783C48D413307B3";
+		};
+		22BD46BB2BC9C1CB2A2863AD = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "EntryForm.swift";
+			sourceTree = "<group>";
+		};
+		471CCBCD216FCA13E1D3B85A = {
+			isa = "PBXBuildFile";
+			fileRef = "22BD46BB2BC9C1CB2A2863AD";
+		};
+		51F81C4C370B94ECE2A21CBC = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "JournalView.swift";
+			sourceTree = "<group>";
+		};
+		07AF8B771B9D964E59BF3D02 = {
+			isa = "PBXBuildFile";
+			fileRef = "51F81C4C370B94ECE2A21CBC";
+		};
+		C564D8E6C880B7838D5AF748 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Models.swift";
+			sourceTree = "<group>";
+		};
+		FD825685184AF3166D56C1B1 = {
+			isa = "PBXBuildFile";
+			fileRef = "C564D8E6C880B7838D5AF748";
+		};
+		B94A9EFD3E53E5D7FED4FE3C = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "OverviewView.swift";
+			sourceTree = "<group>";
+		};
+		274CA7620EE3C93FB2954837 = {
+			isa = "PBXBuildFile";
+			fileRef = "B94A9EFD3E53E5D7FED4FE3C";
+		};
+		7E1D84CE5AB34E29DA642139 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "ReminderService.swift";
+			sourceTree = "<group>";
+		};
+		6069D25B49A99E531B7B277E = {
+			isa = "PBXBuildFile";
+			fileRef = "7E1D84CE5AB34E29DA642139";
+		};
+		E973C4A5A2787182FFFA21BB = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "ReportsView.swift";
+			sourceTree = "<group>";
+		};
+		85E2FD86A3D8C5CE7784B7E3 = {
+			isa = "PBXBuildFile";
+			fileRef = "E973C4A5A2787182FFFA21BB";
+		};
+		0E1A89B6D72667098302D098 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "RootView.swift";
+			sourceTree = "<group>";
+		};
+		C0996E5B1A31BB43291F88EE = {
+			isa = "PBXBuildFile";
+			fileRef = "0E1A89B6D72667098302D098";
+		};
+		03AF56BE2C9FDF9DEFBDE818 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "SettingsView.swift";
+			sourceTree = "<group>";
+		};
+		D2740EFD5804A93FE8C32426 = {
+			isa = "PBXBuildFile";
+			fileRef = "03AF56BE2C9FDF9DEFBDE818";
+		};
+		1711E5981A8436B2ADB545A3 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Theme.swift";
+			sourceTree = "<group>";
+		};
+		DE2EB8F42DADE8A886AB1E5F = {
+			isa = "PBXBuildFile";
+			fileRef = "1711E5981A8436B2ADB545A3";
+		};
+		8BF729FFE074CAEE622C0292 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "folder.assetcatalog";
+			path = "Assets.xcassets";
+			sourceTree = "<group>";
+		};
+		5522B3B3B2EACC1C8F9BEAAC = {
+			isa = "PBXBuildFile";
+			fileRef = "8BF729FFE074CAEE622C0292";
+		};
+		FC233BDA2344D97687F5A251 = {
+			isa = "PBXGroup";
+			children = (
+				"C62C71BF1783C48D413307B3",
+				"22BD46BB2BC9C1CB2A2863AD",
+				"51F81C4C370B94ECE2A21CBC",
+				"C564D8E6C880B7838D5AF748",
+				"B94A9EFD3E53E5D7FED4FE3C",
+				"7E1D84CE5AB34E29DA642139",
+				"E973C4A5A2787182FFFA21BB",
+				"0E1A89B6D72667098302D098",
+				"03AF56BE2C9FDF9DEFBDE818",
+				"1711E5981A8436B2ADB545A3",
+				"8BF729FFE074CAEE622C0292",
+			);
+			path = "App";
+			sourceTree = "<group>";
+		};
+		4CC88557ECD433986EC3186C = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "ChargeLedgerTests/AppTests.swift";
+			sourceTree = "SOURCE_ROOT";
+		};
+		C18085A17A2B41A4DD477E2A = {
+			isa = "PBXBuildFile";
+			fileRef = "4CC88557ECD433986EC3186C";
+		};
+		21606B234947BB4DB2C9E1D5 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Core/Tests/ChargeLedgerCoreTests/LedgerTests.swift";
+			sourceTree = "SOURCE_ROOT";
+		};
+		377AC052A904A3BE223B8D46 = {
+			isa = "PBXBuildFile";
+			fileRef = "21606B234947BB4DB2C9E1D5";
+		};
+		C4E2E7F217DE3642E7714F4E = {
+			isa = "PBXGroup";
+			children = (
+				"4CC88557ECD433986EC3186C",
+				"21606B234947BB4DB2C9E1D5",
+			);
+			name = "Tests";
+			sourceTree = "<group>";
+		};
+		68B24E2474647577F4BE365A = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "folder";
+			path = "Core";
+			sourceTree = "<group>";
+		};
+		681C948D238C526E9E3424E0 = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.application";
+			includeInIndex = 0;
+			path = "ChargeLedger.app";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		F739566ED5280322FF98A798 = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.cfbundle";
+			includeInIndex = 0;
+			path = "ChargeLedgerTests.xctest";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		0A3E27B8CA818264D75C8D81 = {
+			isa = "PBXGroup";
+			children = (
+				"681C948D238C526E9E3424E0",
+				"F739566ED5280322FF98A798",
+			);
+			name = "Products";
+			sourceTree = "<group>";
+		};
+		19F479106CE8C3BA8C106518 = {
+			isa = "PBXGroup";
+			children = (
+				"FC233BDA2344D97687F5A251",
+				"68B24E2474647577F4BE365A",
+				"C4E2E7F217DE3642E7714F4E",
+				"0A3E27B8CA818264D75C8D81",
+			);
+			sourceTree = "<group>";
+		};
+		D3C3BDCB1D696717755D7420 = {
+			isa = "XCLocalSwiftPackageReference";
+			relativePath = "Core";
+		};
+		F5AE27228AC34400DE4A3768 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "D3C3BDCB1D696717755D7420";
+			productName = "ChargeLedgerCore";
+		};
+		DFFA1BFB845350DB49AA8D49 = {
+			isa = "PBXBuildFile";
+			productRef = "F5AE27228AC34400DE4A3768";
+		};
+		4CE9DD7BF18F1368EDB3E53B = {
+			isa = "PBXBuildFile";
+			productRef = "F5AE27228AC34400DE4A3768";
+		};
+		AFF87A50730392B6633ACECE = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (
+				"1F2F48CC99FD1A8510A890B5",
+				"471CCBCD216FCA13E1D3B85A",
+				"07AF8B771B9D964E59BF3D02",
+				"FD825685184AF3166D56C1B1",
+				"274CA7620EE3C93FB2954837",
+				"6069D25B49A99E531B7B277E",
+				"85E2FD86A3D8C5CE7784B7E3",
+				"C0996E5B1A31BB43291F88EE",
+				"D2740EFD5804A93FE8C32426",
+				"DE2EB8F42DADE8A886AB1E5F",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEE94446A282611C16F7781C = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (
+				"C18085A17A2B41A4DD477E2A",
+				"377AC052A904A3BE223B8D46",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A4C2DC8FCA657188648E999 = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = 2147483647;
+			files = (
+				"DFFA1BFB845350DB49AA8D49",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10CDED79664567B030B2B4F = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = 2147483647;
+			files = (
+				"4CE9DD7BF18F1368EDB3E53B",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		41D311A605520FC7B8B9A980 = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (
+				"5522B3B3B2EACC1C8F9BEAAC",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1F030AB36D1A3A4389CF71AE = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		685EC5AD8CAF20CBA30EAD2F = {
+			isa = "XCBuildConfiguration";
+			buildSettings = {
+				CLANG_ENABLE_MODULES = "YES";
+				CLANG_ENABLE_OBJC_ARC = "YES";
+				SDKROOT = "iphoneos";
+				IPHONEOS_DEPLOYMENT_TARGET = "17.0";
+				SWIFT_VERSION = "5.0";
+				CODE_SIGN_STYLE = "Automatic";
+				DEVELOPMENT_TEAM = "";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				ENABLE_USER_SCRIPT_SANDBOXING = "YES";
+				DEBUG_INFORMATION_FORMAT = "dwarf";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_COMPILATION_MODE = "singlefile";
+				ENABLE_TESTABILITY = "YES";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				ONLY_ACTIVE_ARCH = "YES";
+			};
+			name = "Debug";
+		};
+		664642617E4A7D68CDAE216B = {
+			isa = "XCBuildConfiguration";
+			buildSettings = {
+				CLANG_ENABLE_MODULES = "YES";
+				CLANG_ENABLE_OBJC_ARC = "YES";
+				SDKROOT = "iphoneos";
+				IPHONEOS_DEPLOYMENT_TARGET = "17.0";
+				SWIFT_VERSION = "5.0";
+				CODE_SIGN_STYLE = "Automatic";
+				DEVELOPMENT_TEAM = "";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				ENABLE_USER_SCRIPT_SANDBOXING = "YES";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_COMPILATION_MODE = "wholemodule";
+			};
+			name = "Release";
+		};
+		B4E10CAA9C5E22150B71559C = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (
+				"685EC5AD8CAF20CBA30EAD2F",
+				"664642617E4A7D68CDAE216B",
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		5DA529901DAC6B82A62A59DB = {
+			isa = "XCBuildConfiguration";
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.ChargeLedger";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				GENERATE_INFOPLIST_FILE = "YES";
+				INFOPLIST_KEY_CFBundleDisplayName = "Charge Ledger";
+				INFOPLIST_KEY_UILaunchScreen_Generation = "YES";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = "YES";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "AccentColor";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				CURRENT_PROJECT_VERSION = "1";
+				MARKETING_VERSION = "0.1.0";
+				SWIFT_EMIT_LOC_STRINGS = "YES";
+				SUPPORTS_MACCATALYST = "NO";
+			};
+			name = "Debug";
+		};
+		7035812DF1A42504AE71A1C8 = {
+			isa = "XCBuildConfiguration";
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.ChargeLedger";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				GENERATE_INFOPLIST_FILE = "YES";
+				INFOPLIST_KEY_CFBundleDisplayName = "Charge Ledger";
+				INFOPLIST_KEY_UILaunchScreen_Generation = "YES";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = "YES";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "AccentColor";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				CURRENT_PROJECT_VERSION = "1";
+				MARKETING_VERSION = "0.1.0";
+				SWIFT_EMIT_LOC_STRINGS = "YES";
+				SUPPORTS_MACCATALYST = "NO";
+			};
+			name = "Release";
+		};
+		7BCEE9A04133D8A2FED7D4D3 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (
+				"5DA529901DAC6B82A62A59DB",
+				"7035812DF1A42504AE71A1C8",
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		632BCDA2F97489D257394235 = {
+			isa = "XCBuildConfiguration";
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.ChargeLedgerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				GENERATE_INFOPLIST_FILE = "YES";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ChargeLedger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ChargeLedger";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+			};
+			name = "Debug";
+		};
+		C1CF28E8801291EED0FDEDB1 = {
+			isa = "XCBuildConfiguration";
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.ChargeLedgerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				GENERATE_INFOPLIST_FILE = "YES";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ChargeLedger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ChargeLedger";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+			};
+			name = "Release";
+		};
+		03DD3B561E55E02346DA0484 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (
+				"632BCDA2F97489D257394235",
+				"C1CF28E8801291EED0FDEDB1",
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		C1E9827DB735CA9BAA54A540 = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = "7BCEE9A04133D8A2FED7D4D3";
+			buildPhases = (
+				"AFF87A50730392B6633ACECE",
+				"7A4C2DC8FCA657188648E999",
+				"41D311A605520FC7B8B9A980",
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ChargeLedger";
+			packageProductDependencies = (
+				"F5AE27228AC34400DE4A3768",
+			);
+			productName = "ChargeLedger";
+			productReference = "681C948D238C526E9E3424E0";
+			productType = "com.apple.product-type.application";
+		};
+		00B65C7FF4DF955E2B77DCDC = {
+			isa = "PBXContainerItemProxy";
+			containerPortal = "244210E48437B6556980A702";
+			proxyType = 1;
+			remoteGlobalIDString = "C1E9827DB735CA9BAA54A540";
+			remoteInfo = "ChargeLedger";
+		};
+		74F52A58B40386BC8A8260F6 = {
+			isa = "PBXTargetDependency";
+			target = "C1E9827DB735CA9BAA54A540";
+			targetProxy = "00B65C7FF4DF955E2B77DCDC";
+		};
+		9805CBD60EB4F66728D5D195 = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = "03DD3B561E55E02346DA0484";
+			buildPhases = (
+				"DEE94446A282611C16F7781C",
+				"B10CDED79664567B030B2B4F",
+				"1F030AB36D1A3A4389CF71AE",
+			);
+			buildRules = (
+			);
+			dependencies = (
+				"74F52A58B40386BC8A8260F6",
+			);
+			name = "ChargeLedgerTests";
+			packageProductDependencies = (
+				"F5AE27228AC34400DE4A3768",
+			);
+			productName = "ChargeLedgerTests";
+			productReference = "F739566ED5280322FF98A798";
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		244210E48437B6556980A702 = {
+			isa = "PBXProject";
+			attributes = {
+				BuildIndependentTargetsInParallel = "YES";
+				LastUpgradeCheck = "1600";
+				TargetAttributes = {
+					C1E9827DB735CA9BAA54A540 = {
+						CreatedOnToolsVersion = "16.0";
+					};
+					9805CBD60EB4F66728D5D195 = {
+						CreatedOnToolsVersion = "16.0";
+						TestTargetID = "C1E9827DB735CA9BAA54A540";
+					};
+				};
+			};
+			buildConfigurationList = "B4E10CAA9C5E22150B71559C";
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "en";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				"en",
+				"Base",
+			);
+			mainGroup = "19F479106CE8C3BA8C106518";
+			packageReferences = (
+				"D3C3BDCB1D696717755D7420",
+			);
+			productRefGroup = "0A3E27B8CA818264D75C8D81";
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				"C1E9827DB735CA9BAA54A540",
+				"9805CBD60EB4F66728D5D195",
+			);
+		};
+	};
+	rootObject = "244210E48437B6556980A702";
+}
