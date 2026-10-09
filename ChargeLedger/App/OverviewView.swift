@@ -3,48 +3,70 @@ import SwiftData
 import ChargeLedgerCore
 
 struct OverviewView: View {
-    let add: (EntryKind) -> Void
+    let add: (EntryRequest) -> Void
     @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
     @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
+    @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
     private var readings: [Reading] { checkpoints.map(\.reading) }
     private var external: [Charge] { charges.map(\.charge) }
+    private var pending: [Checkpoint] { Array(checkpoints.filter { $0.closesCycle && !$0.hasMeterReading }.reversed()) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                if checkpoints.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Image(systemName: "bolt.car.fill").font(.largeTitle).foregroundStyle(LedgerStyle.accent)
-                        Text("Your car, in numbers.").font(.title2.bold())
-                        Text("A few readings. A clearer picture of your charging energy and costs.")
-                            .foregroundStyle(.secondary)
-                        Button { add(.baseline) } label: {
-                            Label("Set starting readings", systemImage: "plus")
-                                .frame(maxWidth: .infinity).padding(.vertical, 8)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(22).background(.background, in: RoundedRectangle(cornerRadius: 22))
-                } else {
-                    VStack(spacing: 10) {
-                        action(.month, detail: "Trip A · monthly meter readings")
-                        action(.cycle, detail: "Trip B · full-charge cycle")
-                        action(.outside, detail: "Energy and actual price · partial or full")
-                    }
-                    currentMonthCard
-                    let month = Ledger.months(readings: readings, charges: external).last
-                    SummaryCard(title: "Latest completed month",
-                                subtitle: month?.month.map(LedgerStyle.month) ?? "Trip A",
-                                summary: month,
-                                emptyMessage: "Record consecutive monthly checkpoints to see distance, consumption, and cost here.")
-                    let cycle = Ledger.cycles(readings: readings, charges: external).last
-                    SummaryCard(title: "Last 100% cycle",
-                                subtitle: cycle.map { "\($0.start.formatted(date: .abbreviated, time: .omitted)) – \($0.end.formatted(date: .abbreviated, time: .omitted))" } ?? "Trip B",
-                                summary: cycle,
-                                emptyMessage: "Two full-charge checkpoints establish a complete driving cycle. Monthly readings keep Trip B running.")
-                    Text("Home costs use your saved prices. Charging energy includes losses; it measures electricity supplied, rather than the car’s dashboard consumption.")
-                        .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 4)
+                VStack(spacing: 10) {
+                    action(.outside, detail: "Partial or 100% · kWh and amount paid")
+                    action(.cycle, detail: "Meter counter and Trip B")
+                    action(.month, detail: "Trip A only · reset on the 1st")
                 }
+                if checkpoints.first(where: \.hasMeterReading) == nil {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Start tracking home energy").font(.headline)
+                        Text("Set a starting meter reading, or start with your next full home charge.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                        Button("Set starting meter") { add(EntryRequest(kind: .baseline)) }
+                    }
+                    .padding(20).background(.background, in: RoundedRectangle(cornerRadius: 20))
+                }
+                if !pending.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Home data to complete", systemImage: "exclamationmark.circle.fill")
+                            .font(.headline).foregroundStyle(.orange)
+                        ForEach(pending) { checkpoint in
+                            Button {
+                                add(EntryRequest(kind: .homeData, checkpoint: checkpoint))
+                            } label: {
+                                HStack {
+                                    Text(checkpoint.date.formatted(date: .abbreviated, time: .shortened))
+                                    Spacer()
+                                    Text("Add home data").font(.subheadline.weight(.medium))
+                                }
+                            }
+                        }
+                    }
+                    .padding(20).background(.background, in: RoundedRectangle(cornerRadius: 20))
+                }
+                let cycle = Ledger.cycles(readings: readings, charges: external).last
+                SummaryCard(title: "Last 100% cycle", subtitle: "Trip B", summary: cycle,
+                            emptyMessage: "The first 100% record starts a cycle. The next one closes it.")
+                let measurement = Ledger.measurements(readings: readings, charges: external).last
+                SummaryCard(title: "Latest complete energy report",
+                            subtitle: measurement.map { "\($0.cycleCount) cycle\($0.cycleCount == 1 ? "" : "s") between home readings" } ?? "Home and outside energy",
+                            summary: measurement,
+                            emptyMessage: "Complete home readings let you compare all energy supplied with the distance driven.")
+                let month = Ledger.months(readings: readings, charges: external, mileage: mileage.map(\.record)).last
+                if let month {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(LedgerStyle.month(month.month!)).font(.headline)
+                        HStack {
+                            Metric(title: "Monthly mileage · Trip A", value: LedgerStyle.number(month.distance), unit: "km")
+                            Metric(title: "Outside cost logged", value: LedgerStyle.number(month.outsideCost), unit: "AMD")
+                        }
+                    }
+                    .padding(20).background(.background, in: RoundedRectangle(cornerRadius: 20))
+                }
+                Text("Partial home charges need no entry. Outside sessions can be logged immediately or together when you close a 100% cycle.")
+                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 4)
             }
             .padding(16)
         }
@@ -53,7 +75,7 @@ struct OverviewView: View {
     }
 
     private func action(_ kind: EntryKind, detail: String) -> some View {
-        Button { add(kind) } label: {
+        Button { add(EntryRequest(kind: kind)) } label: {
             HStack(spacing: 14) {
                 Image(systemName: kind.icon).font(.title3)
                     .frame(width: 42, height: 42)
@@ -69,24 +91,5 @@ struct OverviewView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(kind.title)
-    }
-
-    private var currentMonthCard: some View {
-        let month = Calendar.current.dateInterval(of: .month, for: .now)!
-        let current = external.filter { $0.date >= month.start && $0.date < month.end }
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("This month").font(.headline)
-                Spacer()
-                Text(Date.now.formatted(.dateTime.month(.abbreviated).year())).font(.caption).foregroundStyle(.secondary)
-            }
-            HStack {
-                Metric(title: "Outside charging logged", value: LedgerStyle.number(current.reduce(0) { $0 + $1.energy }), unit: "kWh")
-                Metric(title: "Outside cost", value: LedgerStyle.number(current.reduce(0) { $0 + $1.cost }), unit: "AMD")
-            }
-            Text("Monthly distance and total consumption arrive when you record Trip A and the next month’s meter readings.")
-                .font(.caption).foregroundStyle(.secondary)
-        }
-        .padding(20).background(.background, in: RoundedRectangle(cornerRadius: 22))
     }
 }

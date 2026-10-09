@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
     @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
+    @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
     @AppStorage("averageRate") private var savedRate = "47.5"
     @AppStorage("t1Rate") private var savedT1 = "53.48"
     @AppStorage("t2Rate") private var savedT2 = "43.48"
@@ -41,16 +42,19 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Default pricing", selection: $tariffs) {
-                    Text("Single price").tag(false)
-                    Text("T1 / T2 prices").tag(true)
+                Picker("Home meter", selection: $tariffs) {
+                    Text("Single counter").tag(false)
+                    Text("T1 / T2 counters").tag(true)
                 }
-                DecimalField(title: "Single price", unit: "AMD/kWh", text: $rate).focused($fieldFocused)
-                DecimalField(title: "T1 price", unit: "AMD/kWh", text: $t1Rate).focused($fieldFocused)
-                DecimalField(title: "T2 price", unit: "AMD/kWh", text: $t2Rate).focused($fieldFocused)
-                Button("Save default prices", action: savePrices)
-            } header: { Text("Home charging prices") } footer: {
-                Text("New checkpoints start with these prices. Override them on any record, including older entries. Changing defaults leaves existing records untouched.")
+                if tariffs {
+                    DecimalField(title: "T1 price", unit: "AMD/kWh", text: $t1Rate).focused($fieldFocused)
+                    DecimalField(title: "T2 price", unit: "AMD/kWh", text: $t2Rate).focused($fieldFocused)
+                } else {
+                    DecimalField(title: "Price", unit: "AMD/kWh", text: $rate).focused($fieldFocused)
+                }
+                Button("Save meter settings", action: savePrices)
+            } header: { Text("Home meter and prices") } footer: {
+                Text("New home entries ask for a single cumulative counter or T1/T2 counters based on this setting. Each record keeps its saved price, which you can override.")
             }
 
             Section {
@@ -68,15 +72,15 @@ struct SettingsView: View {
                     }
                 }
             } header: { Text("Monthly checkpoint") } footer: {
-                Text("A local notification reminds you on the first day of every month. Tap it to open Start new month. The time follows your iPhone’s time zone.")
+                Text("A local notification reminds you on the first day of every month. Tap it to enter Trip A kilometres and reset Trip A. The time follows your iPhone’s time zone.")
             }
 
             Section {
                 Button {
-                    exportDocument = LedgerCSV(text: CSVExport.make(readings: checkpoints, charges: charges))
+                    exportDocument = LedgerCSV(text: CSVExport.make(readings: checkpoints, charges: charges, mileage: mileage))
                     exporting = true
                 } label: { Label("Export all entries as CSV", systemImage: "square.and.arrow.up") }
-                .disabled(checkpoints.isEmpty && charges.isEmpty)
+                .disabled(checkpoints.isEmpty && charges.isEmpty && mileage.isEmpty)
             } header: { Text("Your data") } footer: {
                 Text("Entries are stored locally on this iPhone. Export includes raw readings, trip distances, battery levels, saved prices, and outside charging. Keep exports for your own backup or spreadsheet analysis.")
             }
@@ -84,7 +88,7 @@ struct SettingsView: View {
                 LabeledContent("Distance", value: "Kilometres")
                 LabeledContent("Currency", value: "AMD")
                 LabeledContent("Storage", value: "On-device · SwiftData")
-                Text("Trip A follows monthly resets. Trip B follows 100% charges. A monthly reading never closes a cycle unless you explicitly select it.")
+                Text("Trip A is recorded once a month. Trip B resets after every 100% charge. Outside cycles can be completed with home data later.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -118,7 +122,7 @@ struct SettingsView: View {
         }
         savedRate = Numbers.string(average); savedT1 = Numbers.string(first); savedT2 = Numbers.string(second)
         savedTariffs = tariffs
-        message = "Default prices saved. Existing records keep their prices."
+        message = "Meter settings saved. Existing records keep their format and prices."
         fieldFocused = false
     }
 
@@ -158,20 +162,42 @@ enum CSVExport {
     private static func quote(_ text: String) -> String {
         "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
-    static func make(readings: [Checkpoint], charges: [OutsideCharge]) -> String {
-        var rows = [["record_type", "id", "recorded_at", "reading_time", "month_boundary", "is_baseline", "closes_cycle",
-                     "t1_kwh", "t2_kwh", "trip_a_km", "trip_b_km", "battery_percent", "home_pricing",
-                     "single_price_amd_kwh", "t1_price_amd_kwh", "t2_price_amd_kwh", "outside_kwh", "outside_amd", "location", "linked_charge_id"]]
+    static func make(readings: [Checkpoint], charges: [OutsideCharge], mileage: [MonthlyMileage] = []) -> String {
+        let headers = ["record_type", "id", "recorded_at", "reading_time", "month_boundary", "is_baseline", "closes_cycle",
+                       "t1_kwh", "t2_kwh", "trip_a_km", "trip_b_km", "battery_percent", "home_pricing",
+                       "single_price_amd_kwh", "t1_price_amd_kwh", "t2_price_amd_kwh", "outside_kwh", "outside_amd", "location", "linked_charge_id",
+                       "has_home_meter", "meter_total_kwh", "home_data_status", "home_data_added_at", "meter_format", "month_closed"]
+        var rows = [headers]
         for reading in readings {
-            rows.append(["checkpoint", reading.id.uuidString, reading.recordedAt.ISO8601Format(), reading.date.ISO8601Format(),
-                         reading.monthBoundary?.ISO8601Format() ?? "", String(reading.isBaseline), String(reading.closesCycle),
-                         reading.t1Text, reading.t2Text, reading.tripAText ?? "", reading.tripBText ?? "",
-                         reading.battery.map(String.init) ?? "", reading.useTariffRates ? "t1_t2" : "single",
-                         reading.averageRateText, reading.t1RateText, reading.t2RateText, "", "", "", reading.linkedChargeID?.uuidString ?? ""])
+            var row = [String](repeating: "", count: headers.count)
+            row[0] = "checkpoint"; row[1] = reading.id.uuidString
+            row[2] = reading.recordedAt.ISO8601Format(); row[3] = reading.date.ISO8601Format()
+            row[4] = reading.monthBoundary?.ISO8601Format() ?? ""
+            row[5] = String(reading.isBaseline); row[6] = String(reading.closesCycle)
+            if reading.hasMeterReading && reading.meterTotalText == nil { row[7] = reading.t1Text; row[8] = reading.t2Text }
+            row[9] = reading.tripAText ?? ""; row[10] = reading.tripBText ?? ""
+            row[11] = reading.battery.map(String.init) ?? ""
+            row[12] = reading.useTariffRates ? "t1_t2" : "single"
+            row[13] = reading.averageRateText; row[14] = reading.t1RateText; row[15] = reading.t2RateText
+            row[19] = reading.linkedChargeID?.uuidString ?? ""
+            row[20] = String(reading.hasMeterReading); row[21] = reading.meterTotalText ?? ""
+            row[22] = reading.homeDataStatus ?? ""; row[23] = reading.homeDataAddedAt?.ISO8601Format() ?? ""
+            row[24] = reading.hasMeterReading ? (reading.meterTotalText == nil ? "t1_t2" : "single") : ""
+            rows.append(row)
         }
         for charge in charges {
-            rows.append(["outside_charge", charge.id.uuidString, "", charge.date.ISO8601Format(), "", "", "", "", "", "", charge.tripBText ?? "", "", "",
-                         "", "", "", charge.energyText, charge.costText, charge.location, ""])
+            var row = [String](repeating: "", count: headers.count)
+            row[0] = "outside_charge"; row[1] = charge.id.uuidString; row[3] = charge.date.ISO8601Format()
+            row[10] = charge.tripBText ?? ""; row[16] = charge.energyText
+            row[17] = charge.costText; row[18] = charge.location
+            rows.append(row)
+        }
+        for record in mileage {
+            var row = [String](repeating: "", count: headers.count)
+            row[0] = "monthly_mileage"; row[1] = record.id.uuidString
+            row[3] = record.date.ISO8601Format(); row[9] = record.distanceText
+            row[25] = record.month.ISO8601Format()
+            rows.append(row)
         }
         return "\u{FEFF}" + rows.map { $0.map(quote).joined(separator: ",") }.joined(separator: "\r\n") + "\r\n"
     }

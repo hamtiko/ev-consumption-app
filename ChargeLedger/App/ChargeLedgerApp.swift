@@ -19,7 +19,7 @@ struct ChargeLedgerApp: App {
     private let storage: Result<ModelContainer, Error>
 
     init() {
-        storage = Result { try ModelContainer(for: Checkpoint.self, OutsideCharge.self) }
+        storage = Result { try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self) }
     }
 
     var body: some Scene {

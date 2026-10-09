@@ -21,6 +21,12 @@ final class Checkpoint {
     var battery: Int?
     // A combined outside-charge + checkpoint entry stays linked when edited.
     var linkedChargeID: UUID?
+    var hasMeterReading: Bool = true
+    var meterTotalText: String? = nil
+    var endedOutside: Bool = false
+    var monthMileageMigrated: Bool = false
+    var homeDataStatus: String? = nil
+    var homeDataAddedAt: Date? = nil
 
     init(reading: Reading, linkedChargeID: UUID? = nil) {
         id = reading.id; date = reading.date; recordedAt = .now
@@ -32,6 +38,9 @@ final class Checkpoint {
         isBaseline = reading.isBaseline
         tripAText = reading.tripA.map(Numbers.string); tripBText = reading.tripB.map(Numbers.string)
         battery = reading.battery; self.linkedChargeID = linkedChargeID
+        hasMeterReading = reading.hasMeterReading
+        meterTotalText = reading.meterTotal.map(Numbers.string)
+        monthMileageMigrated = true
     }
 
     var reading: Reading {
@@ -40,7 +49,8 @@ final class Checkpoint {
                 t1Rate: Numbers.parse(t1RateText) ?? 0, t2Rate: Numbers.parse(t2RateText) ?? 0,
                 useTariffRates: useTariffRates,
                 monthBoundary: monthBoundary, closesCycle: closesCycle, isBaseline: isBaseline,
-                tripA: tripAText.flatMap(Numbers.parse), tripB: tripBText.flatMap(Numbers.parse), battery: battery)
+                tripA: tripAText.flatMap(Numbers.parse), tripB: tripBText.flatMap(Numbers.parse), battery: battery,
+                hasMeterReading: hasMeterReading, meterTotal: meterTotalText.flatMap(Numbers.parse))
     }
 
     func update(with value: Reading) {
@@ -51,12 +61,31 @@ final class Checkpoint {
         averageRateText = Numbers.string(value.averageRate)
         t1RateText = Numbers.string(value.t1Rate); t2RateText = Numbers.string(value.t2Rate)
         useTariffRates = value.useTariffRates
+        hasMeterReading = value.hasMeterReading
+        meterTotalText = value.meterTotal.map(Numbers.string)
     }
 
     var title: String {
         if isBaseline { return "Starting readings" }
-        if monthBoundary != nil && closesCycle { return "New month · 100% charge" }
-        return monthBoundary != nil ? "New month" : "100% charge"
+        if !closesCycle { return "Home meter reading" }
+        return endedOutside ? "Outside charge · 100%" : "Home charge · 100%"
+    }
+}
+
+@Model
+final class MonthlyMileage {
+    @Attribute(.unique) var id: UUID
+    var date: Date
+    var month: Date
+    var distanceText: String
+
+    init(record: MileageRecord) {
+        id = record.id; date = record.date; month = record.month
+        distanceText = Numbers.string(record.distance)
+    }
+
+    var record: MileageRecord {
+        MileageRecord(id: id, date: date, month: month, distance: Numbers.parse(distanceText) ?? 0)
     }
 }
 
@@ -84,14 +113,16 @@ final class OutsideCharge {
 }
 
 enum EntryKind: String, Identifiable {
-    case baseline, month, cycle, outside
+    case baseline, month, cycle, outside, legacyMeter, homeData
     var id: String { rawValue }
     var title: String {
         switch self {
         case .baseline: "Starting readings"
-        case .month: "Start new month"
-        case .cycle: "Reached 100%"
+        case .month: "Monthly mileage"
+        case .cycle: "Home charge · 100%"
         case .outside: "Outside charging"
+        case .legacyMeter: "Home meter reading"
+        case .homeData: "Complete home data"
         }
     }
     var icon: String {
@@ -100,6 +131,8 @@ enum EntryKind: String, Identifiable {
         case .month: "calendar.badge.plus"
         case .cycle: "battery.100percent"
         case .outside: "bolt.car.fill"
+        case .legacyMeter: "gauge.with.dots.needle.50percent"
+        case .homeData: "house.fill"
         }
     }
 }
@@ -109,4 +142,24 @@ struct EntryRequest: Identifiable {
     let kind: EntryKind
     var checkpoint: Checkpoint? = nil
     var charge: OutsideCharge? = nil
+    var mileage: MonthlyMileage? = nil
+}
+
+@MainActor
+enum LegacyMileageMigration {
+    static func run(in context: ModelContext) throws {
+        let checkpoints = try context.fetch(FetchDescriptor<Checkpoint>())
+        let existing = Set(try context.fetch(FetchDescriptor<MonthlyMileage>()).map(\.id))
+        var changed = false
+        for checkpoint in checkpoints where !checkpoint.monthMileageMigrated {
+            if !checkpoint.isBaseline, let boundary = checkpoint.monthBoundary,
+               let distance = checkpoint.tripAText.flatMap(Numbers.parse), !existing.contains(checkpoint.id),
+               let month = Ledger.monthCalendar.date(byAdding: .month, value: -1, to: boundary) {
+                context.insert(MonthlyMileage(record: MileageRecord(id: checkpoint.id, date: checkpoint.date,
+                                                                  month: month, distance: distance)))
+            }
+            checkpoint.monthMileageMigrated = true; changed = true
+        }
+        if changed { try context.save() }
+    }
 }

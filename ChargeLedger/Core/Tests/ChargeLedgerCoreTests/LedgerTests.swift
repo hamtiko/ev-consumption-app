@@ -148,4 +148,145 @@ final class LedgerTests: XCTestCase {
             XCTAssertNil(Numbers.parse(value), "Unexpectedly accepted \(value)")
         }
     }
+
+    func testOutsideFullChargeHasPartialReportUntilHomeDataIsAdded() throws {
+        let start = Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true,
+                            isBaseline: true, battery: 100, meterTotal: 1000)
+        let outside = Reading(date: date("2026-01-10"), t1: 0, t2: 0, closesCycle: true,
+                              tripB: 500, battery: 100, hasMeterReading: false)
+        let charge = Charge(date: outside.date, energy: 30, cost: 3000)
+        XCTAssertNil(Ledger.validate(outside, against: [start]))
+        let report = try XCTUnwrap(Ledger.cycles(readings: [start, outside], charges: [charge]).first)
+        XCTAssertFalse(report.homeEnergyKnown)
+        XCTAssertEqual(report.distance, 500)
+        XCTAssertEqual(report.outsideEnergy, 30)
+        XCTAssertEqual(report.outsideCost, 3000)
+        XCTAssertNil(report.totalEnergy)
+        XCTAssertNil(report.estimatedTotalCost)
+        XCTAssertNil(report.energyPer100KM)
+        XCTAssertEqual(report.missingHomeReadingIDs, [outside.id])
+        XCTAssertNil(Ledger.weightedEfficiency([report]))
+    }
+
+    func testAddingHomeDataCompletesBothAdjacentCycles() throws {
+        let start = Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true,
+                            isBaseline: true, battery: 100, meterTotal: 1000)
+        let pending = Reading(date: date("2026-01-10"), t1: 0, t2: 0, closesCycle: true,
+                              tripB: 500, battery: 100, hasMeterReading: false)
+        let end = Reading(date: date("2026-01-20"), t1: 0, t2: 0, closesCycle: true,
+                          tripB: 700, battery: 100, meterTotal: 1150)
+        let charges = [Charge(date: pending.date, energy: 30, cost: 3000),
+                       Charge(date: date("2026-01-15"), energy: 20, cost: 1000)]
+        let partial = Ledger.cycles(readings: [start, pending, end], charges: charges)
+        XCTAssertTrue(partial.allSatisfy { !$0.homeEnergyKnown })
+        let completed = Reading(id: pending.id, date: pending.date, t1: 0, t2: 0, closesCycle: true,
+                                tripB: pending.tripB, battery: 100, meterTotal: 1100)
+        XCTAssertNil(Ledger.validate(completed, against: [start, pending, end]))
+        let reports = Ledger.cycles(readings: [start, completed, end], charges: charges)
+        XCTAssertTrue(reports.allSatisfy(\.homeEnergyKnown))
+        XCTAssertEqual(reports[0].totalEnergy, 130)
+        XCTAssertEqual(reports[0].energyPer100KM, 26)
+        XCTAssertEqual(reports[0].estimatedTotalCost, 7750)
+        XCTAssertEqual(reports[1].totalEnergy, 70)
+        XCTAssertEqual(reports[1].energyPer100KM, 10)
+        XCTAssertTrue(reports.allSatisfy { $0.missingHomeReadingIDs.isEmpty })
+    }
+
+    func testNoHomeChargingCarriesForwardSingleOrTariffCounters() throws {
+        let starts = [Reading(date: date("2026-01-01"), t1: 100, t2: 200, closesCycle: true, isBaseline: true, battery: 100),
+                      Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true, isBaseline: true, battery: 100, meterTotal: 300)]
+        for start in starts {
+            let pending = Reading(date: date("2026-01-10"), t1: 0, t2: 0, closesCycle: true,
+                                  tripB: 100, battery: 100, hasMeterReading: false)
+            let completed = try XCTUnwrap(Ledger.carryingForwardMeter(for: pending, readings: [pending, start]))
+            XCTAssertTrue(completed.hasMeterReading)
+            XCTAssertEqual(completed.total, 300)
+            XCTAssertEqual(completed.meterTotal, start.meterTotal)
+            XCTAssertEqual(completed.id, pending.id)
+            let report = try XCTUnwrap(Ledger.cycles(readings: [start, completed],
+                charges: [Charge(date: pending.date, energy: 20, cost: 1000)]).first)
+            XCTAssertEqual(report.homeEnergy, 0)
+            XCTAssertEqual(report.totalEnergy, 20)
+            XCTAssertEqual(report.energyPer100KM, 20)
+            XCTAssertEqual(report.costPerKM, 10)
+        }
+    }
+
+    func testCarryForwardNeverUsesFutureOrUnknownMeterValues() {
+        let pending = Reading(date: date("2026-01-10"), t1: 0, t2: 0, hasMeterReading: false)
+        let unknown = Reading(date: date("2026-01-01"), t1: 0, t2: 0, hasMeterReading: false)
+        let future = Reading(date: date("2026-01-20"), t1: 100, t2: 100)
+        XCTAssertNil(Ledger.carryingForwardMeter(for: pending, readings: [unknown, pending, future]))
+    }
+
+    func testNoHomeConfirmationCompletesAllPendingCheckpointsSinceLatestReading() throws {
+        let a = Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true,
+                        isBaseline: true, battery: 100, meterTotal: 1000)
+        let b = Reading(date: date("2026-01-10"), t1: 0, t2: 0, closesCycle: true,
+                        tripB: 300, battery: 100, hasMeterReading: false)
+        let c = Reading(date: date("2026-01-20"), t1: 0, t2: 0, closesCycle: true,
+                        tripB: 400, battery: 100, hasMeterReading: false)
+        let completed = try XCTUnwrap(Ledger.confirmingNoHomeCharging(through: c, readings: [a, b, c]))
+        XCTAssertEqual(completed.map(\.id), [b.id, c.id])
+        let cycles = Ledger.cycles(readings: [a] + completed,
+            charges: [Charge(date: b.date, energy: 20, cost: 1000), Charge(date: c.date, energy: 30, cost: 1500)])
+        XCTAssertTrue(cycles.allSatisfy(\.homeEnergyKnown))
+        XCTAssertTrue(cycles.allSatisfy { $0.homeEnergy == 0 })
+        XCTAssertEqual(cycles.map(\.distance), [300, 400])
+    }
+
+    func testCompleteEnergyWindowSpansPendingOutsideCycleWithoutGuessingSplit() throws {
+        let start = Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true,
+                            isBaseline: true, battery: 100, meterTotal: 1000)
+        let outside = Reading(date: date("2026-01-10"), t1: 0, t2: 0, closesCycle: true,
+                              tripB: 500, battery: 100, hasMeterReading: false)
+        let end = Reading(date: date("2026-01-20"), t1: 0, t2: 0, closesCycle: true,
+                          tripB: 800, battery: 100, meterTotal: 1200)
+        let charges = [Charge(date: outside.date, energy: 30, cost: 3000),
+                       Charge(date: date("2026-01-15"), energy: 10, cost: 500)]
+        let report = try XCTUnwrap(Ledger.measurements(readings: [start, outside, end], charges: charges).first)
+        XCTAssertTrue(report.homeEnergyKnown)
+        XCTAssertEqual(report.cycleCount, 2)
+        XCTAssertEqual(report.distance, 1300)
+        XCTAssertEqual(report.homeEnergy, 200)
+        XCTAssertEqual(report.totalEnergy, 240)
+        XCTAssertEqual(report.estimatedTotalCost, 13000)
+    }
+
+    func testMonthlyTripARequiresNoMeterOrCycleReset() throws {
+        let month = ISO8601DateFormatter().date(from: "2026-02-01T12:00:00Z")!
+        let mileage = MileageRecord(date: date("2026-03-01"), month: month, distance: 2100)
+        let charges = [Charge(date: date("2026-02-15"), energy: 10, cost: 600),
+                       Charge(date: date("2026-03-01"), energy: 20, cost: 1000)]
+        let report = try XCTUnwrap(Ledger.months(readings: [], charges: charges, mileage: [mileage], sessionCalendar: calendar).first)
+        XCTAssertEqual(report.distance, 2100)
+        XCTAssertEqual(report.month, month)
+        XCTAssertEqual(report.outsideEnergy, 10)
+        XCTAssertEqual(report.outsideCost, 600)
+        XCTAssertFalse(report.homeEnergyKnown)
+        XCTAssertTrue(Ledger.cycles(readings: [], charges: charges).isEmpty)
+    }
+
+    func testChangingMeterFormatValidatesTotalAndSkipsPendingReadings() {
+        let start = Reading(date: date("2026-01-01"), t1: 400, t2: 600)
+        let pending = Reading(date: date("2026-01-05"), t1: 0, t2: 0, hasMeterReading: false)
+        let end = Reading(date: date("2026-01-10"), t1: 0, t2: 0, meterTotal: 1100)
+        XCTAssertNil(Ledger.validate(end, against: [start, pending]))
+        XCTAssertNotNil(Ledger.validate(Reading(date: end.date, t1: 0, t2: 0, meterTotal: 999), against: [start, pending]))
+        XCTAssertNil(Ledger.validate(Reading(date: date("2026-01-20"), t1: 450, t2: 700), against: [start, pending, end]))
+    }
+
+    func testDeferredOutsideSessionsAreIncludedAtCycleClose() throws {
+        let a = Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true,
+                        isBaseline: true, battery: 100, meterTotal: 1000)
+        let b = Reading(date: date("2026-01-10"), t1: 0, t2: 0, closesCycle: true,
+                        tripB: 500, battery: 100, meterTotal: 1100)
+        let deferred = [Charge(date: date("2026-01-03"), energy: 10, cost: 500),
+                        Charge(date: date("2026-01-07"), energy: 20, cost: 1000)]
+        let current = Charge(date: b.date, energy: 30, cost: 3000)
+        let report = try XCTUnwrap(Ledger.cycles(readings: [a, b], charges: deferred + [current]).first)
+        XCTAssertEqual(report.outsideEnergy, 60)
+        XCTAssertEqual(report.outsideCost, 4500)
+        XCTAssertEqual(report.totalEnergy, 160)
+    }
 }

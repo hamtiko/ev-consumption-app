@@ -44,9 +44,18 @@ struct SummaryCard: View {
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)
             }
             if let summary {
+                if !summary.homeEnergyKnown {
+                    Label("Partial data", systemImage: "exclamationmark.circle.fill")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.orange)
+                }
                 HStack {
                     Metric(title: "Distance", value: LedgerStyle.number(summary.distance), unit: "km")
-                    Metric(title: "Charging energy", value: LedgerStyle.number(summary.totalEnergy), unit: "kWh")
+                    Metric(title: summary.homeEnergyKnown ? "Charging energy" : "Outside energy logged",
+                           value: LedgerStyle.number(summary.homeEnergyKnown ? summary.totalEnergy : summary.outsideEnergy), unit: "kWh")
+                }
+                if !summary.homeEnergyKnown {
+                    Text(summary.month == nil ? "Add home data to complete consumption and cost totals." : "Monthly mileage is complete. Home energy is measured at 100% checkpoints.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 HStack {
                     Metric(title: "Consumption", value: LedgerStyle.number(summary.energyPer100KM), unit: "kWh/100 km")
