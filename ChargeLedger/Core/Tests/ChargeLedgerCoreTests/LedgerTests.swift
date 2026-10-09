@@ -54,6 +54,20 @@ final class LedgerTests: XCTestCase {
         XCTAssertEqual(cycles[1].outsideEnergy, 0)
     }
 
+    func testPartialChargeTripReadingDoesNotAddDistanceOrCloseCycle() throws {
+        let a = Reading(date: date("2026-01-01"), t1: 0, t2: 0, closesCycle: true, isBaseline: true, battery: 100)
+        let b = Reading(date: date("2026-01-10"), t1: 70, t2: 0, closesCycle: true, tripB: 500, battery: 100)
+        let partial = Charge(date: date("2026-01-05"), energy: 30, cost: 1500, tripB: 240)
+        XCTAssertEqual(partial.tripB, 240)
+        XCTAssertTrue(Ledger.cycles(readings: [a], charges: [partial]).isEmpty)
+        let cycles = Ledger.cycles(readings: [a, b], charges: [partial])
+        XCTAssertEqual(cycles.count, 1)
+        let cycle = try XCTUnwrap(cycles.first)
+        XCTAssertEqual(cycle.distance, 500)
+        XCTAssertEqual(cycle.totalEnergy, 100)
+        XCTAssertEqual(cycle.energyPer100KM, 20)
+    }
+
     func testEachRecordPriceAppliesToItsOwnMeterSegment() throws {
         let a = Reading(date: date("2026-01-01"), t1: 100, t2: 0, closesCycle: true, isBaseline: true, battery: 100)
         let b = Reading(date: date("2026-01-05"), t1: 150, t2: 0, averageRate: 40)

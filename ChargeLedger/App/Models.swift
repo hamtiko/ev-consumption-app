@@ -67,16 +67,19 @@ final class OutsideCharge {
     var energyText: String
     var costText: String
     var location: String
+    var tripBText: String? = nil
 
     init(charge: Charge) {
         id = charge.id; date = charge.date
         energyText = Numbers.string(charge.energy); costText = Numbers.string(charge.cost)
         location = charge.location
+        tripBText = charge.tripB.map(Numbers.string)
     }
 
     var charge: Charge {
         Charge(id: id, date: date, energy: Numbers.parse(energyText) ?? 0,
-               cost: Numbers.parse(costText) ?? 0, location: location)
+               cost: Numbers.parse(costText) ?? 0, location: location,
+               tripB: tripBText.flatMap(Numbers.parse))
     }
 }
 

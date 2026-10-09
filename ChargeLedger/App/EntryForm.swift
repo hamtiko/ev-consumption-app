@@ -70,21 +70,35 @@ struct EntryForm: View {
                     Section { Toggle("Also reached 100% · close Trip B", isOn: $cycleEnabled) }
                 }
 
-                if monthEnabled && !isBaseline {
+                if monthEnabled || isBaseline {
                     Section {
-                        DatePicker("Month being closed", selection: $closedMonth, displayedComponents: .date)
-                        DecimalField(title: "Trip A distance", unit: "km", text: $tripA)
+                        if !isBaseline {
+                            DatePicker("Month being closed", selection: $closedMonth, displayedComponents: .date)
+                        }
+                        DecimalField(title: isBaseline ? "Trip A kilometres (optional)" : "Trip A kilometres driven", unit: "km", text: $tripA)
                             .focused($fieldFocused)
                     } header: { Text("Monthly mileage") } footer: {
-                        Text("Closing \(LedgerStyle.month(monthStart(closedMonth))). Trip B continues unless you also reached 100%.")
+                        if isBaseline {
+                            Text("You can keep the current Trip A reading here. Starting readings establish a baseline; they do not calculate an earlier month’s consumption.")
+                        } else {
+                            Text("Closing \(LedgerStyle.month(monthStart(closedMonth))). Trip B continues unless you also reached 100%.")
+                        }
                     }
                 }
 
-                if cycleEnabled && !isBaseline {
-                    Section("100% driving cycle") {
-                        DecimalField(title: "Trip B distance", unit: "km", text: $tripB)
+                if cycleEnabled || isBaseline || request.kind == .outside {
+                    Section {
+                        DecimalField(title: cycleEnabled && !isBaseline ? "Trip B kilometres driven" : "Trip B kilometres (optional)", unit: "km", text: $tripB)
                             .focused($fieldFocused)
-                        LabeledContent("Battery", value: "100%")
+                        if cycleEnabled { LabeledContent("Battery", value: "100%") }
+                    } header: { Text("Trip distance") } footer: {
+                        if isBaseline {
+                            Text("Enter the kilometres shown on Trip B if you want to keep your initial reading. Complete cycle reports begin at the first recorded 100% reset.")
+                        } else if cycleEnabled {
+                            Text("Enter the kilometres shown on Trip B since your last 100% reset.")
+                        } else {
+                            Text("Enter the current Trip B reading if available. A partial charge keeps the cycle running; do not reset Trip B.")
+                        }
                     }
                 }
 
@@ -205,7 +219,9 @@ struct EntryForm: View {
         if let charge = linkedCharge {
             outsideEnabled = true; outsideEnergy = charge.energyText
             outsideCost = charge.costText; location = charge.location
-            if request.checkpoint == nil { date = charge.date }
+            if request.checkpoint == nil {
+                date = charge.date; tripB = charge.tripBText ?? ""
+            }
         }
     }
 
@@ -224,8 +240,8 @@ struct EntryForm: View {
         return Reading(id: request.checkpoint?.id ?? UUID(), date: date, t1: first, t2: second,
                        averageRate: rate, t1Rate: firstRate, t2Rate: secondRate, useTariffRates: useTariffs,
                        monthBoundary: boundary, closesCycle: cycleEnabled, isBaseline: isBaseline,
-                       tripA: monthEnabled && !isBaseline ? Numbers.parse(tripA) : nil,
-                       tripB: cycleEnabled && !isBaseline ? Numbers.parse(tripB) : nil,
+                       tripA: monthEnabled || isBaseline ? Numbers.parse(tripA) : nil,
+                       tripB: cycleEnabled || isBaseline ? Numbers.parse(tripB) : nil,
                        battery: cycleEnabled ? 100 : Int(batteryText.trimmingCharacters(in: .whitespaces)))
     }
 
@@ -233,7 +249,8 @@ struct EntryForm: View {
         guard outsideEnabled || request.kind == .outside,
               let energy = Numbers.parse(outsideEnergy), energy > 0,
               let price = Numbers.parse(outsideCost) else { return nil }
-        return Charge(id: linkedCharge?.id ?? UUID(), date: date, energy: energy, cost: price, location: location)
+        return Charge(id: linkedCharge?.id ?? UUID(), date: date, energy: energy, cost: price,
+                      location: location, tripB: Numbers.parse(tripB))
     }
 
     private var preview: PeriodSummary? {
@@ -249,6 +266,13 @@ struct EntryForm: View {
 
     private func save() {
         guard date <= .now else { errorMessage = "Choose a reading time in the past or present."; return }
+        if (cycleEnabled || isBaseline || request.kind == .outside),
+           !tripB.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, Numbers.parse(tripB) == nil {
+            errorMessage = "Enter valid Trip B kilometres using digits and a decimal point or comma."; return
+        }
+        if isBaseline, !tripA.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, Numbers.parse(tripA) == nil {
+            errorMessage = "Enter valid Trip A kilometres using digits and a decimal point or comma."; return
+        }
         if outsideEnabled || request.kind == .outside {
             guard candidateCharge != nil else { errorMessage = "Enter positive charging energy and a total price (0 for free)."; return }
         }
@@ -275,6 +299,7 @@ struct EntryForm: View {
                 if let existing = linkedCharge {
                     existing.date = value.date; existing.energyText = Numbers.string(value.energy)
                     existing.costText = Numbers.string(value.cost); existing.location = value.location
+                    existing.tripBText = value.tripB.map(Numbers.string)
                 } else { context.insert(OutsideCharge(charge: value)) }
             } else if let existing = linkedCharge { context.delete(existing) }
             if let candidate = candidateReading {

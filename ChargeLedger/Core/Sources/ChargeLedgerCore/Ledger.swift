@@ -61,9 +61,12 @@ public struct Charge: Identifiable, Equatable, Sendable {
     public let energy: Decimal
     public let cost: Decimal
     public let location: String
+    /// Optional counter reading at a partial charge. It does not reset or close Trip B.
+    public let tripB: Decimal?
 
-    public init(id: UUID = UUID(), date: Date, energy: Decimal, cost: Decimal, location: String = "") {
+    public init(id: UUID = UUID(), date: Date, energy: Decimal, cost: Decimal, location: String = "", tripB: Decimal? = nil) {
         self.id = id; self.date = date; self.energy = energy; self.cost = cost; self.location = location
+        self.tripB = tripB
     }
 }
 

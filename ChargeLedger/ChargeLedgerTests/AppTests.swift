@@ -10,7 +10,7 @@ final class AppTests: XCTestCase {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, configurations: config)
         let context = ModelContext(container)
-        let charge = Charge(date: .now, energy: 20, cost: 1500)
+        let charge = Charge(date: .now, energy: 20, cost: 1500, tripB: Decimal(string: "125.5")!)
         let reading = Reading(date: charge.date, t1: 100, t2: 200, averageRate: 51,
                               closesCycle: true, tripB: 500, battery: 100)
         let checkpoint = Checkpoint(reading: reading, linkedChargeID: charge.id)
@@ -19,20 +19,26 @@ final class AppTests: XCTestCase {
         XCTAssertEqual(reloaded.reading.averageRate, 51)
         XCTAssertEqual(reloaded.linkedChargeID, charge.id)
         XCTAssertEqual(reloaded.reading, reading)
+        let reloadedCharge = try XCTUnwrap(context.fetch(FetchDescriptor<OutsideCharge>()).first)
+        XCTAssertEqual(reloadedCharge.tripBText, "125.5")
+        XCTAssertEqual(reloadedCharge.charge, charge)
         reloaded.update(with: Reading(id: reading.id, date: reading.date, t1: 100, t2: 200,
                                      averageRate: 55, closesCycle: true, tripB: 500, battery: 100))
         try context.save()
         XCTAssertEqual(reloaded.reading.averageRate, 55)
     }
 
-    func testExportPreservesQuotesPricesAndLinkedSession() {
-        let charge = Charge(date: .now, energy: Decimal(string: "12.6")!, cost: 0, location: "Station, \"North\"")
+    func testExportPreservesQuotesPricesAndLinkedSession() throws {
+        let charge = Charge(date: .now, energy: Decimal(string: "12.6")!, cost: 0,
+                            location: "Station, \"North\"", tripB: Decimal(string: "125.5")!)
         let checkpoint = Checkpoint(reading: Reading(date: charge.date, t1: 10, t2: 20, averageRate: 49), linkedChargeID: charge.id)
         let csv = CSVExport.make(readings: [checkpoint], charges: [OutsideCharge(charge: charge)])
         XCTAssertTrue(csv.contains("\"Station, \"\"North\"\"\""))
         XCTAssertTrue(csv.contains("\"49\""))
         XCTAssertTrue(csv.contains(charge.id.uuidString))
         XCTAssertTrue(csv.hasPrefix("\u{FEFF}"))
+        let chargeRow = try XCTUnwrap(csv.components(separatedBy: "\r\n").first { $0.hasPrefix("\"outside_charge\"") })
+        XCTAssertEqual(chargeRow.components(separatedBy: ",")[10], "\"125.5\"")
     }
 
     func testMonthlyNotificationTriggerHasNextOccurrenceOnFirst() throws {

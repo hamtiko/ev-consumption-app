@@ -170,7 +170,7 @@ enum CSVExport {
                          reading.averageRateText, reading.t1RateText, reading.t2RateText, "", "", "", reading.linkedChargeID?.uuidString ?? ""])
         }
         for charge in charges {
-            rows.append(["outside_charge", charge.id.uuidString, "", charge.date.ISO8601Format(), "", "", "", "", "", "", "", "", "",
+            rows.append(["outside_charge", charge.id.uuidString, "", charge.date.ISO8601Format(), "", "", "", "", "", "", charge.tripBText ?? "", "", "",
                          "", "", "", charge.energyText, charge.costText, charge.location, ""])
         }
         return "\u{FEFF}" + rows.map { $0.map(quote).joined(separator: ",") }.joined(separator: "\r\n") + "\r\n"

@@ -81,6 +81,9 @@ struct JournalView: View {
                 case .charge(let charge):
                     Text(charge.location.isEmpty ? "Outside charging" : charge.location).font(.headline)
                     Text("\(charge.energyText) kWh · \(charge.costText) AMD").font(.subheadline).foregroundStyle(.secondary)
+                    if let distance = charge.tripBText {
+                        Text("Trip B: \(distance) km").font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 Text(item.date.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.tertiary)
             }

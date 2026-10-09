@@ -12,10 +12,10 @@ The checked-in project is ready to open; project-generation tools are not requir
 
 ## Your everyday routine
 
-- **Starting readings:** establish the meter baseline. Enable “Reset Trip A now” only if you reset the monthly counter, and “At 100% · reset Trip B now” only if you are fully charged and reset that counter. Starting mid-month produces a partial first monthly period.
+- **Starting readings:** establish the meter baseline and optionally keep the current Trip A/B kilometre readings. Enable “Reset Trip A now” only if you reset the monthly counter, and “At 100% · reset Trip B now” only if you are fully charged and reset that counter. Initial kilometre readings do not reconstruct past consumption. Starting mid-month produces a partial first monthly period.
 - **Start new month:** record Trip A distance, cumulative home T1/T2 readings, and optional battery percentage. The form defaults to closing the previous calendar month. Record the actual reading time even if entering it later. Select “Also reached 100%” when resetting Trip B at the same time.
 - **Reached 100%:** record Trip B distance and cumulative home T1/T2 readings, even after charging outside. Include an outside session in the same entry when applicable.
-- **Outside charging:** log every outside session, including partial charges, with kWh and actual total AMD from the charger app. “Also reached 100%” opens the Trip B and meter fields.
+- **Outside charging:** log every outside session, including partial charges, with kWh and actual total AMD from the charger app. The Trip B kilometres field is always visible and optional for partial charges. “Also reached 100%” makes distance required and opens the meter fields. Partial-session Trip B readings are kept in the journal and CSV export; they do not close the cycle or add distance to its final counter reading.
 
 After saving a new checkpoint, the app reminds you which physical trip counter to reset. It cannot reset the car's counters automatically. Journal entries can be edited or deleted; calculations update from their original data.
 
