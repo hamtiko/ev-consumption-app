@@ -6,6 +6,32 @@ import ChargeLedgerCore
 
 @MainActor
 final class AppTests: XCTestCase {
+    func testMonthlyMeterRoundTripKeepsOptionalMileageUnknownAndSharesCounter() throws {
+        let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let month = ISO8601DateFormatter().date(from: "2026-01-01T12:00:00Z")!
+        let boundary = ISO8601DateFormatter().date(from: "2026-02-01T12:00:00Z")!
+        let reading = Reading(date: boundary, t1: 0, t2: 0, averageRate: 51,
+                              monthBoundary: boundary, meterTotal: 1500)
+        let monthly = MonthlyMileage(record: MileageRecord(id: reading.id, date: boundary, month: month,
+                                                           distance: 0, distanceKnown: false))
+        context.insert(monthly); context.insert(Checkpoint(reading: reading)); try context.save()
+        let stored = try XCTUnwrap(context.fetch(FetchDescriptor<MonthlyMileage>()).first)
+        let meter = try XCTUnwrap(context.fetch(FetchDescriptor<Checkpoint>()).first)
+        XCTAssertEqual(stored.id, meter.id)
+        XCTAssertEqual(stored.distanceText, "")
+        XCTAssertFalse(stored.record.distanceKnown)
+        XCTAssertNil(meter.reading.tripA)
+        XCTAssertFalse(meter.closesCycle)
+        XCTAssertEqual(meter.reading.meterTotal, 1500)
+        let later = boundary.addingTimeInterval(3600)
+        XCTAssertEqual(Ledger.latestMeterReading(before: later, readings: [meter.reading])?.total, 1500)
+        let csv = CSVExport.make(readings: [meter], charges: [], mileage: [stored])
+        let row = try XCTUnwrap(csv.components(separatedBy: "\r\n").first { $0.hasPrefix("\"monthly_mileage\"") })
+        XCTAssertEqual(row.components(separatedBy: ",")[9], "\"\"")
+    }
+
     func testCompletedMonthFollowsReadingDateAcrossYearAndLeapBoundaries() {
         let formatter = ISO8601DateFormatter()
         let examples = [

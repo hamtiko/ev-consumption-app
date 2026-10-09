@@ -25,7 +25,7 @@ final class ReminderService: NSObject, ObservableObject, UNUserNotificationCente
         }
         let content = UNMutableNotificationContent()
         content.title = "Time for your monthly readings"
-        content.body = "Record last month’s Trip A kilometres, then reset Trip A in your car."
+        content.body = "Record your home charger meter for last month’s utility cost. Optionally enter Trip A kilometres and reset Trip A."
         content.sound = .default
         content.userInfo = ["flow": "month"]
         // No fixed time zone: follow the user's local wall clock, including DST.

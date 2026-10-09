@@ -27,7 +27,9 @@ struct JournalView: View {
     @State private var pendingDelete: JournalItem?
     @State private var error: String?
     private var items: [JournalItem] {
-        (checkpoints.map(JournalItem.checkpoint) + charges.map(JournalItem.charge) + mileage.map(JournalItem.mileage))
+        let monthlyIDs = Set(mileage.map(\.id))
+        return (checkpoints.filter { !monthlyIDs.contains($0.id) || $0.closesCycle || $0.isBaseline }.map(JournalItem.checkpoint)
+                + charges.map(JournalItem.charge) + mileage.map(JournalItem.mileage))
             .sorted { $0.date == $1.date ? $0.id < $1.id : $0.date > $1.date }
     }
 
@@ -35,7 +37,7 @@ struct JournalView: View {
         List {
             if items.isEmpty {
                 ContentUnavailableView("Your journal is empty", systemImage: "list.bullet.rectangle",
-                                       description: Text("Log an outside charge, a full home charge, or your monthly Trip A mileage."))
+                                       description: Text("Log a 100% cycle or your monthly home meter reading."))
             }
             ForEach(items) { item in
                 Button { open(item) } label: { row(item) }
@@ -44,8 +46,7 @@ struct JournalView: View {
                         Button("Delete", role: .destructive) { pendingDelete = item }
                     }
                     .swipeActions(edge: .leading) {
-                        if case .checkpoint(let checkpoint) = item, checkpoint.closesCycle,
-                           checkpoint.endedOutside || checkpoint.linkedChargeID != nil {
+                        if case .checkpoint(let checkpoint) = item, checkpoint.closesCycle {
                             Button(checkpoint.hasMeterReading ? "Edit home data" : "Add home data") {
                                 edit(EntryRequest(kind: .homeData, checkpoint: checkpoint))
                             }
@@ -58,7 +59,6 @@ struct JournalView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button(EntryKind.outside.title, systemImage: EntryKind.outside.icon) { edit(EntryRequest(kind: .outside)) }
                     Button(EntryKind.cycle.title, systemImage: EntryKind.cycle.icon) { edit(EntryRequest(kind: .cycle)) }
                     Button(EntryKind.month.title, systemImage: EntryKind.month.icon) { edit(EntryRequest(kind: .month)) }
                 } label: { Image(systemName: "plus") }
@@ -97,8 +97,13 @@ struct JournalView: View {
                     Text(charge.location.isEmpty ? "Outside charging" : charge.location).font(.headline)
                     Text("\(charge.energyText) kWh · \(charge.costText) AMD").font(.subheadline).foregroundStyle(.secondary)
                 case .mileage(let record):
-                    Text("Monthly mileage · \(LedgerStyle.month(record.month))").font(.headline)
-                    Text("Trip A: \(record.distanceText) km").font(.subheadline).foregroundStyle(.secondary)
+                    Text("Monthly readings · \(LedgerStyle.month(record.month))").font(.headline)
+                    if let meter = checkpoints.first(where: { $0.id == record.id }) {
+                        Text("Home meter: \(LedgerStyle.number(meter.reading.total)) kWh").font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    if !record.distanceText.isEmpty {
+                        Text("Trip A: \(record.distanceText) km").font(.subheadline).foregroundStyle(.secondary)
+                    }
                 }
                 Text(item.date.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.tertiary)
             }
@@ -120,9 +125,13 @@ struct JournalView: View {
         switch item {
         case .mileage(let record): edit(EntryRequest(kind: .month, mileage: record))
         case .checkpoint(let checkpoint):
-            let kind: EntryKind = checkpoint.isBaseline ? .baseline : !checkpoint.closesCycle ? .legacyMeter
-                : checkpoint.endedOutside || checkpoint.linkedChargeID != nil ? .outside : .cycle
-            edit(EntryRequest(kind: kind, checkpoint: checkpoint))
+            if !checkpoint.closesCycle, !checkpoint.isBaseline,
+               let record = mileage.first(where: { $0.id == checkpoint.id }) {
+                edit(EntryRequest(kind: .month, mileage: record))
+            } else {
+                let kind: EntryKind = checkpoint.isBaseline ? .baseline : !checkpoint.closesCycle ? .legacyMeter : .cycle
+                edit(EntryRequest(kind: kind, checkpoint: checkpoint))
+            }
         case .charge(let charge):
             if let checkpoint = checkpoints.first(where: { $0.linkedChargeID == charge.id }) { open(.checkpoint(checkpoint)) }
             else { edit(EntryRequest(kind: .outside, charge: charge)) }
@@ -138,7 +147,10 @@ struct JournalView: View {
                 for checkpoint in checkpoints where checkpoint.linkedChargeID == charge.id { checkpoint.linkedChargeID = nil }
                 context.delete(charge)
             case .mileage(let record):
-                if let legacy = checkpoints.first(where: { $0.id == record.id }) { legacy.tripAText = nil }
+                if let meter = checkpoints.first(where: { $0.id == record.id }) {
+                    if meter.closesCycle || meter.isBaseline { meter.tripAText = nil; meter.monthBoundary = nil }
+                    else { context.delete(meter) }
+                }
                 context.delete(record)
             }
             try context.save(); pendingDelete = nil

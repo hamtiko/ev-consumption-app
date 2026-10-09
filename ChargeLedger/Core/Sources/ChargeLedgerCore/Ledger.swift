@@ -65,8 +65,10 @@ public struct MileageRecord: Identifiable, Equatable, Sendable {
     public let date: Date
     public let month: Date
     public let distance: Decimal
-    public init(id: UUID = UUID(), date: Date, month: Date, distance: Decimal) {
+    public let distanceKnown: Bool
+    public init(id: UUID = UUID(), date: Date, month: Date, distance: Decimal, distanceKnown: Bool = true) {
         self.id = id; self.date = date; self.month = month; self.distance = distance
+        self.distanceKnown = distanceKnown
     }
 }
 
@@ -101,14 +103,15 @@ public struct PeriodSummary: Identifiable, Sendable {
     public let homeEnergyKnown: Bool
     public let cycleCount: Int
     public let missingHomeReadingIDs: [UUID]
+    public var distanceKnown: Bool = true
     public var totalEnergy: Decimal? { homeEnergyKnown ? homeEnergy + outsideEnergy : nil }
     public var estimatedTotalCost: Decimal? { homeEnergyKnown ? estimatedHomeCost + outsideCost : nil }
     public var energyPer100KM: Decimal? {
-        guard distance > 0, let totalEnergy else { return nil }
+        guard distanceKnown, distance > 0, let totalEnergy else { return nil }
         return totalEnergy / distance * 100
     }
     public var costPerKM: Decimal? {
-        guard distance > 0, let estimatedTotalCost else { return nil }
+        guard distanceKnown, distance > 0, let estimatedTotalCost else { return nil }
         return estimatedTotalCost / distance
     }
 }
@@ -119,6 +122,12 @@ public enum Ledger {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar
+    }
+
+    /// Monthly readings and cycle readings share the same cumulative home counter.
+    public static func latestMeterReading(before date: Date, excludingID: UUID? = nil, readings: [Reading]) -> Reading? {
+        readings.filter { $0.id != excludingID && $0.hasMeterReading && $0.date < date }
+            .max(by: { $0.date < $1.date })
     }
     /// Prevent invalid backdated edits by checking BOTH neighboring meter readings.
     public static func validate(_ candidate: Reading, against readings: [Reading]) -> String? {
@@ -219,9 +228,11 @@ public enum Ledger {
         var reports: [PeriodSummary] = zip(endpoints, endpoints.dropFirst()).compactMap { start, end in
             guard let startMonth = start.monthBoundary, let endMonth = end.monthBoundary,
                   calendar.date(byAdding: .month, value: 1, to: startMonth) == endMonth,
-                  let distance = end.tripA, !end.isBaseline else { return nil }
-            return summary(from: start, to: end, distance: distance, month: startMonth,
-                           readings: sorted, charges: charges)
+                  !end.isBaseline else { return nil }
+            var report = summary(from: start, to: end, distance: end.tripA ?? 0, month: startMonth,
+                                 readings: sorted, charges: charges, cycleCount: 0)
+            report.distanceKnown = end.tripA != nil
+            return report
         }
         for record in mileage {
             let legacy = reports.first { $0.month == record.month }
@@ -231,7 +242,8 @@ public enum Ledger {
                     distance: record.distance, homeEnergy: legacy.homeEnergy, outsideEnergy: legacy.outsideEnergy,
                     estimatedHomeCost: legacy.estimatedHomeCost, tariffComparisonCost: legacy.tariffComparisonCost,
                     outsideCost: legacy.outsideCost, startBattery: legacy.startBattery, endBattery: legacy.endBattery,
-                    homeEnergyKnown: legacy.homeEnergyKnown, cycleCount: 0, missingHomeReadingIDs: legacy.missingHomeReadingIDs))
+                    homeEnergyKnown: legacy.homeEnergyKnown, cycleCount: 0, missingHomeReadingIDs: legacy.missingHomeReadingIDs,
+                    distanceKnown: record.distanceKnown))
             } else {
                 let parts = monthCalendar.dateComponents([.year, .month], from: record.month)
                 let start = sessionCalendar.date(from: parts)!
@@ -240,7 +252,8 @@ public enum Ledger {
                 reports.append(PeriodSummary(id: record.id, start: start, end: end, month: record.month,
                     distance: record.distance, homeEnergy: 0, outsideEnergy: outside.reduce(0) { $0 + $1.energy },
                     estimatedHomeCost: 0, tariffComparisonCost: nil, outsideCost: outside.reduce(0) { $0 + $1.cost },
-                    startBattery: nil, endBattery: nil, homeEnergyKnown: false, cycleCount: 0, missingHomeReadingIDs: []))
+                    startBattery: nil, endBattery: nil, homeEnergyKnown: false, cycleCount: 0, missingHomeReadingIDs: [],
+                    distanceKnown: record.distanceKnown))
             }
         }
         return reports.sorted { ($0.month ?? $0.end) < ($1.month ?? $1.end) }
@@ -275,7 +288,7 @@ public enum Ledger {
     }
 
     public static func weightedEfficiency(_ summaries: [PeriodSummary]) -> Decimal? {
-        let complete = summaries.filter { $0.totalEnergy != nil }
+        let complete = summaries.filter { $0.totalEnergy != nil && $0.distanceKnown }
         let distance = complete.reduce(Decimal.zero) { $0 + $1.distance }
         guard distance > 0 else { return nil }
         return complete.reduce(Decimal.zero) { $0 + ($1.totalEnergy ?? 0) } / distance * 100

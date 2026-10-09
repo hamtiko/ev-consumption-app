@@ -72,7 +72,7 @@ struct SettingsView: View {
                     }
                 }
             } header: { Text("Monthly checkpoint") } footer: {
-                Text("A local notification reminds you on the first day of every month. Tap it to enter Trip A kilometres and reset Trip A. The time follows your iPhone’s time zone.")
+                Text("A local notification reminds you on the first day of every month. Tap it to enter your home meter readings and optional Trip A kilometres. The time follows your iPhone’s time zone.")
             }
 
             Section {
@@ -88,7 +88,7 @@ struct SettingsView: View {
                 LabeledContent("Distance", value: "Kilometres")
                 LabeledContent("Currency", value: "AMD")
                 LabeledContent("Storage", value: "On-device · SwiftData")
-                Text("Trip A is recorded once a month. Trip B resets after every 100% charge. Outside cycles can be completed with home data later.")
+                Text("Monthly home meter readings measure utility costs. Trip A is optional. Trip B resets after every 100% cycle, with home readings and outside sessions recorded together. Missing home data can be completed later.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }

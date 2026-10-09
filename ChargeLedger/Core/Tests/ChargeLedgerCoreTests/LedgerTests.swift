@@ -12,6 +12,82 @@ final class LedgerTests: XCTestCase {
     }
     private func d(_ text: String) -> Decimal { Decimal(string: text)! }
 
+    func testMonthlyUtilityCostDoesNotRequireMileageOrIncludeOutsidePayment() throws {
+        let start = Reading(date: date("2026-01-01"), t1: 0, t2: 0,
+                            monthBoundary: date("2026-01-01"), meterTotal: 1000)
+        let middle = Reading(date: date("2026-01-15"), t1: 0, t2: 0, averageRate: 50,
+                             closesCycle: true, tripB: 300, battery: 100, meterTotal: 1100)
+        let end = Reading(date: date("2026-02-01"), t1: 0, t2: 0, averageRate: 60,
+                          monthBoundary: date("2026-02-01"), meterTotal: 1200)
+        let monthly = MileageRecord(id: end.id, date: end.date, month: start.monthBoundary!, distance: 0, distanceKnown: false)
+        let outside = Charge(date: date("2026-01-20"), energy: 20, cost: 3000)
+        let report = try XCTUnwrap(Ledger.months(readings: [end, start, middle], charges: [outside],
+                                               mileage: [monthly], sessionCalendar: calendar).first)
+        XCTAssertTrue(report.homeEnergyKnown)
+        XCTAssertFalse(report.distanceKnown)
+        XCTAssertEqual(report.homeEnergy, 200)
+        XCTAssertEqual(report.estimatedHomeCost, 11000)
+        XCTAssertEqual(report.outsideCost, 3000)
+        XCTAssertEqual(report.estimatedTotalCost, 14000)
+        XCTAssertNil(report.energyPer100KM)
+        XCTAssertNil(report.costPerKM)
+        XCTAssertNil(Ledger.weightedEfficiency([report]))
+    }
+
+    func testMonthlyUtilityTariffsUseEachCounterIncreaseWithoutTripA() throws {
+        let start = Reading(date: date("2026-01-01"), t1: 100, t2: 200,
+                            useTariffRates: true, monthBoundary: date("2026-01-01"))
+        let end = Reading(date: date("2026-02-01"), t1: 120, t2: 250, t1Rate: 60, t2Rate: 40,
+                          useTariffRates: true, monthBoundary: date("2026-02-01"))
+        let report = try XCTUnwrap(Ledger.months(readings: [start, end], charges: []).first)
+        XCTAssertEqual(report.homeEnergy, 70)
+        XCTAssertEqual(report.estimatedHomeCost, 3200)
+        XCTAssertFalse(report.distanceKnown)
+        XCTAssertTrue(Ledger.cycles(readings: [start, end], charges: []).isEmpty)
+    }
+
+    func testMonthlyAndCycleReadingsShareLatestKnownMeterForPrefill() {
+        let cycle = Reading(date: date("2026-01-20"), t1: 0, t2: 0,
+                            closesCycle: true, tripB: 300, battery: 100, meterTotal: 1000)
+        let monthly = Reading(date: date("2026-02-01"), t1: 0, t2: 0,
+                              monthBoundary: date("2026-02-01"), meterTotal: 1100)
+        let pending = Reading(date: date("2026-02-03"), t1: 0, t2: 0, hasMeterReading: false)
+        let nextCycle = Reading(date: date("2026-02-05"), t1: 0, t2: 0,
+                                closesCycle: true, tripB: 400, battery: 100, meterTotal: 1200)
+        let readings = [nextCycle, pending, monthly, cycle]
+        XCTAssertEqual(Ledger.latestMeterReading(before: pending.date, readings: readings), monthly)
+        XCTAssertEqual(Ledger.latestMeterReading(before: monthly.date, excludingID: monthly.id, readings: readings), cycle)
+        XCTAssertEqual(Ledger.latestMeterReading(before: date("2026-02-10"), readings: readings), nextCycle)
+        XCTAssertNil(Ledger.latestMeterReading(before: cycle.date, readings: readings))
+    }
+
+    func testMonthlyUtilityWithoutStartingBoundaryDoesNotInventCostOrDistance() throws {
+        let end = Reading(date: date("2026-02-01"), t1: 0, t2: 0,
+                          monthBoundary: date("2026-02-01"), meterTotal: 1200)
+        let monthly = MileageRecord(id: end.id, date: end.date, month: date("2026-01-01"), distance: 0, distanceKnown: false)
+        let report = try XCTUnwrap(Ledger.months(readings: [end], charges: [], mileage: [monthly], sessionCalendar: calendar).first)
+        XCTAssertFalse(report.homeEnergyKnown)
+        XCTAssertFalse(report.distanceKnown)
+        XCTAssertNil(report.estimatedTotalCost)
+        XCTAssertNil(report.costPerKM)
+    }
+
+    func testUnifiedCycleIncludesFinalOutsideChargeAndMonthlyPriceSegments() throws {
+        let start = Reading(date: date("2026-01-20"), t1: 0, t2: 0, closesCycle: true,
+                            isBaseline: true, battery: 100, meterTotal: 1000)
+        let monthly = Reading(date: date("2026-02-01"), t1: 0, t2: 0, averageRate: 50,
+                              monthBoundary: date("2026-02-01"), meterTotal: 1100)
+        let end = Reading(date: date("2026-02-05"), t1: 0, t2: 0, averageRate: 60,
+                          closesCycle: true, tripB: 500, battery: 100, meterTotal: 1120)
+        let outside = Charge(date: end.date, energy: 30, cost: 3000)
+        let report = try XCTUnwrap(Ledger.cycles(readings: [start, monthly, end], charges: [outside]).first)
+        XCTAssertEqual(report.distance, 500)
+        XCTAssertEqual(report.totalEnergy, 150)
+        XCTAssertEqual(report.estimatedHomeCost, 6200)
+        XCTAssertEqual(report.estimatedTotalCost, 9200)
+        XCTAssertEqual(report.energyPer100KM, 30)
+    }
+
     func testJanuaryMatchesSpreadsheet() throws {
         let start = Reading(date: date("2026-01-01"), t1: d("184.77"), t2: d("367.16"),
                             monthBoundary: date("2026-01-01"), isBaseline: true)

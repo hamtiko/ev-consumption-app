@@ -14,25 +14,24 @@ The checked-in project is ready to open. `python3 Tools/create_project.py` regen
 
 | Situation | What to enter | Counter reset |
 |---|---|---|
-| Partial outside charging | kWh and actual total AMD; or save it for later | None |
+| Partial outside charging | Add kWh and actual total AMD when logging the next 100% cycle | None at the partial charge |
 | Partial home charging | Nothing | None |
-| Outside charging to 100% | kWh, actual total AMD, and Trip B kilometres | Trip B |
-| Home charging to 100% | Home meter counter(s) and Trip B kilometres | Trip B |
-| First of each month | Trip A kilometres for the month just completed | Trip A |
+| Any charging to 100% | Trip B kilometres, home counter(s) when available, and any outside sessions | Trip B |
+| First of each month | Home meter counter(s); optionally Trip A kilometres | Trip A only if recorded |
 
-**Outside charging** starts as a short form. Enable **Charged to 100%** to reveal Trip B and close the cycle. **Home charge · 100%** asks for the meter and Trip B immediately. **Monthly mileage** is independent of charging: it never asks for meter readings or closes Trip B.
+**Log 100% cycle** is the single charging action for both home and outside charging. Enter Trip B, update the prefilled home counter(s), and **Add outside session** for the final outside charge or earlier partial charges. Each session has its date, kWh and actual payment. Already saved sessions are included automatically; don’t add them again. Old standalone outside sessions remain editable in Journal, including their existing upgrade-to-100% flow.
 
-Monthly mileage automatically uses the month before the reading date: October 1 or October 2 both complete September. Changing the reading date updates the completed month. **Change completed month** offers a month/year override for older records; editing an existing record preserves its saved month.
+**Start new month** records the dedicated home meter and optional Trip A. The completed month is automatically the month before the reading date: October 1 or October 2 both complete September. Changing the reading date updates the completed month. **Change completed month** offers a month/year override for older records; editing an existing record preserves its saved month. Older mileage-only records can still be edited without inventing a meter reading.
 
-Both full-charge forms list already recorded outside sessions and let you **Add earlier outside session** for every partial charge you deferred. Session dates must fall within the current cycle. If the final outside session is already saved, use that session or edit it in Journal and mark it as 100%; its ID is reused instead of creating a duplicate.
+Cycle and monthly forms prefill the latest known home meter before the entry’s date, whether it came from a 100% cycle or a monthly record. Changing the date refreshes the prefill until you edit the counters yourself. Pending readings are skipped. Single counters can use the sum of a previous T1/T2 reading; T1/T2 values cannot be inferred from a previous single counter. Update prefilled values to the current reading, or leave them unchanged only when there has been no home charging.
 
-A saved full-charge record reminds you to reset Trip B, including when converting a saved partial session to a full-charge checkpoint. A new monthly record reminds you to reset Trip A. The app cannot reset the car's counters itself.
+A saved full-charge record reminds you to reset Trip B, including when converting a saved partial session to a full-charge checkpoint. A new monthly record reminds you to reset Trip A only if you entered its kilometres. Monthly readings never reset Trip B. The app cannot reset the car's counters itself.
 
-You can log outside sessions or monthly mileage before setting a home baseline. **Set starting meter** establishes one; optionally confirm the car is at 100% and reset Trip B to begin a complete measurement interval. Without an earlier 100% checkpoint, the first full charge starts a cycle rather than inventing earlier consumption.
+You can log cycles or monthly readings before setting a home baseline. **Set starting meter** establishes one; optionally confirm the car is at 100% and reset Trip B to begin a complete measurement interval. Without an earlier 100% checkpoint, the first full charge starts a cycle rather than inventing earlier consumption. Two consecutive monthly readings establish a monthly home-energy report; the first monthly reading supplies the next month’s starting counter.
 
 ## Complete a partial report later
 
-A full outside charge does not require a home reading while you are away. It creates a 100% checkpoint with **home data pending**. Overview, Journal, and the cycle report highlight **Partial data**.
+Turn off **Home meter reading available** when logging a 100% cycle while away and unable to confirm the counter. It creates a checkpoint with **home data pending**. Overview, Journal, and the cycle report highlight **Partial data**.
 
 Choose **Add home data** in Overview or the report, or swipe a Journal checkpoint to access home data:
 
@@ -58,19 +57,21 @@ The price saved at a meter reading applies to energy since the preceding known m
 
 - **100% cycles:** each Trip B interval, including partial-data status and completion actions.
 - **Energy:** complete home-energy windows. If outside checkpoints remain pending, a window can span multiple 100% cycles; the distance is the sum of their Trip B readings. Adding the missing home data can split that window into complete individual cycles.
-- **Monthly:** recorded Trip A distance and outside sessions by calendar month. Home energy crossing a month boundary cannot be split exactly from Trip A alone. Legacy month-end meter readings continue to support historical complete monthly reports.
+- **Monthly:** home kWh and estimated utility bill contribution between consecutive monthly meter readings, with outside payments shown separately. Home cost uses every intervening meter segment’s saved prices. Trip A is optional; omitted mileage is shown as unrecorded and excluded from distance charts and efficiency calculations. Late readings use their actual timestamps, displayed in the report, so totals may differ from the exact calendar month or utility billing period. Without both monthly meter boundaries, home cost remains unavailable. Legacy month-end meter readings and mileage-only records remain supported.
 
-Charging energy per 100 km includes electricity supplied and charging losses. Weighted consumption uses total energy divided by total distance for **complete** reports only. Zero-distance efficiency is unavailable. An outside session at a 100% checkpoint belongs to the ending cycle, not the next one. Missing home data is distinct from a confirmed unchanged meter.
+Charging energy per 100 km includes electricity supplied and charging losses. Weighted consumption uses total energy divided by total distance for reports with **complete energy and recorded distance** only. Zero-distance efficiency is unavailable. An outside session at a 100% checkpoint belongs to the ending cycle, not the next one. Missing home data is distinct from a confirmed unchanged meter.
 
 Backdated meter edits are validated against preceding and following known readings. Total counter continuity is checked when formats change; unknown readings are skipped. Month identifiers are stable across time-zone changes. Dates can be backdated to the actual event time.
 
 ## Monthly reminder
 
-Enable **Settings → Monthly reminder**, allow notifications, and choose a local time (default 09:00). A repeating local notification on day 1 reminds you to enter Trip A and reset it. Tapping opens **Monthly mileage**, including a cold app launch. No meter or battery information is requested. Rescheduling replaces one stable notification; disabling removes it. iOS settings and Focus modes govern presentation.
+Enable **Settings → Monthly reminder**, allow notifications, and choose a local time (default 09:00). A repeating local notification on day 1 reminds you to enter the home meter and optional Trip A. Tapping opens **Monthly readings**, including a cold app launch. No Trip B or battery information is requested. Rescheduling replaces one stable notification; disabling removes it. iOS settings and Focus modes govern presentation.
 
 ## Existing data and export
 
 SwiftData stores records on-device. The update adds optional/defaulted checkpoint fields and a separate monthly-mileage entity. At launch, old monthly Trip A values are copied once into monthly records while the original meter readings are kept for historical calculations. The conversion is idempotent; deleted converted mileage is not recreated.
+
+The unified-flow update uses the existing model schema. A monthly record and its meter checkpoint share an ID; a blank monthly distance means mileage was not recorded. The journal groups a standalone monthly meter with its monthly record. Deleting a monthly entry deletes its standalone meter checkpoint, or clears only monthly data when it shares a checkpoint with a cycle/baseline.
 
 CSV export includes raw counters, whether a home reading exists, single/tariff prices, Trip A/B, monthly-mileage records, outside sessions, pending/entered/unchanged home status, and home-data timestamps. Old optional partial-session Trip B readings remain preserved in exports, though the new partial-charge form no longer asks for them.
 

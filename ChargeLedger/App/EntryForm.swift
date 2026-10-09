@@ -34,6 +34,7 @@ private struct ChargingForm: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
     @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
+    @Query private var monthlyRecords: [MonthlyMileage]
     @AppStorage("averageRate") private var defaultRate = "47.5"
     @AppStorage("t1Rate") private var defaultT1 = "53.48"
     @AppStorage("t2Rate") private var defaultT2 = "43.48"
@@ -43,6 +44,8 @@ private struct ChargingForm: View {
     @State private var date = Date.now
     @State private var outsideFull = false
     @State private var baselineAt100 = false
+    @State private var homeReadingAvailable = true
+    @State private var prefilledValues = ["", "", ""]
     @State private var singleMeter = true
     @State private var pricingWithTariffs = false
     @State private var meter = ""
@@ -64,6 +67,9 @@ private struct ChargingForm: View {
     private var isBaseline: Bool { request.kind == .baseline }
     private var closesCycle: Bool { isBaseline ? baselineAt100 : request.kind == .cycle || outsideFull }
     private var editing: Bool { request.checkpoint != nil || request.charge != nil }
+    private var hasHomeData: Bool {
+        isOutside ? (request.checkpoint?.hasMeterReading ?? false) : homeReadingAvailable
+    }
     private var existingSession: OutsideCharge? {
         let id = selectedSessionID ?? request.checkpoint?.linkedChargeID ?? request.charge?.id
         return charges.first { $0.id == id }
@@ -72,7 +78,8 @@ private struct ChargingForm: View {
         checkpoints.last { $0.closesCycle && $0.date < date && $0.id != request.checkpoint?.id }
     }
     private var previousMeter: Checkpoint? {
-        checkpoints.last { $0.hasMeterReading && $0.date < date && $0.id != request.checkpoint?.id }
+        let latest = Ledger.latestMeterReading(before: date, excludingID: request.checkpoint?.id, readings: checkpoints.map(\.reading))
+        return checkpoints.first { $0.id == latest?.id }
     }
     private var cycleStart: Date? { previousFull?.date ?? checkpoints.first(where: \.isBaseline)?.date }
     private var loggedSessions: [OutsideCharge] {
@@ -87,13 +94,16 @@ private struct ChargingForm: View {
                 Section {
                     DatePicker("Date and time", selection: $date, in: ...Date.now, displayedComponents: [.date, .hourAndMinute])
                 }
-                if isOutside {
+                if isOutside || (request.kind == .cycle && existingSession != nil) {
                     Section {
                         DecimalField(title: "Energy added", unit: "kWh", text: $energy).focused($focused)
                         DecimalField(title: "Total paid", unit: "AMD", text: $cost).focused($focused)
-                        Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil)
+                        if isOutside {
+                            Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil)
+                        }
                     } footer: {
-                        Text(outsideFull ? "Record Trip B below to finish this cycle." : "Save this session now, or add it later when you next reach 100%. Trip B keeps running.")
+                        Text(request.kind == .cycle ? "This saved outside session belongs to this cycle. You can edit its energy and payment here."
+                             : outsideFull ? "Record Trip B below to finish this cycle." : "Save this session now, or add it later when you next reach 100%. Trip B keeps running.")
                     }
                 }
                 if closesCycle && !isBaseline {
@@ -103,7 +113,14 @@ private struct ChargingForm: View {
                         Text("Read Trip B before resetting it in your car.")
                     }
                 }
-                if !isOutside { homeMeterSection }
+                if request.kind == .cycle {
+                    Section {
+                        Toggle("Home meter reading available", isOn: $homeReadingAvailable)
+                    } footer: {
+                        Text("Turn this off if you are away and cannot confirm the home counter. The cycle will show partial data until you complete it.")
+                    }
+                }
+                if !isOutside && hasHomeData { homeMeterSection }
                 if isBaseline {
                     Section {
                         Toggle("Car is at 100% now", isOn: $baselineAt100)
@@ -140,6 +157,7 @@ private struct ChargingForm: View {
                 ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { focused = false } }
             }
             .onAppear(perform: load)
+            .onChange(of: date) { _, _ in prefillMeter() }
             .alert("Check your entry", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                 Button("OK") { error = nil }
             } message: { Text(error ?? "") }
@@ -168,7 +186,7 @@ private struct ChargingForm: View {
                 Button("Use default prices") { rate = defaultRate; rateT1 = defaultT1; rateT2 = defaultT2 }
             }
         } header: { Text("Home meter") } footer: {
-            Text("Enter the cumulative counter from your dedicated charger meter. The meter format and prices come from Settings; each record keeps its own price.")
+            Text("The counter is prefilled from the latest home reading, including monthly records. Update it to the current value, or keep it unchanged only if there has been no home charging. Each record keeps its own price.")
         }
     }
 
@@ -204,11 +222,10 @@ private struct ChargingForm: View {
                 .padding(.vertical, 5)
             }
             Button {
-                let start = cycleStart ?? date.addingTimeInterval(-3600)
-                earlier.append(SessionDraft(date: Date(timeIntervalSince1970: (start.timeIntervalSince1970 + date.timeIntervalSince1970) / 2)))
-            } label: { Label("Add earlier outside session", systemImage: "plus") }
+                earlier.append(SessionDraft(date: date))
+            } label: { Label("Add outside session", systemImage: "plus") }
         } header: { Text("Outside sessions in this cycle") } footer: {
-            Text("Add any partial outside charges you haven’t logged yet. Already saved sessions are included automatically. Home partial charges need no entry.")
+            Text("Add the final outside charge and any partial outside charges in this cycle. Set each session’s date, kWh and amount paid. Already saved sessions are included automatically. Home partial charges need no entry.")
         }
     }
 
@@ -223,17 +240,30 @@ private struct ChargingForm: View {
             pricingWithTariffs = saved.useTariffRates
             t1 = saved.t1Text; t2 = saved.t2Text
             rate = saved.averageRateText; rateT1 = saved.t1RateText; rateT2 = saved.t2RateText
+            homeReadingAvailable = saved.hasMeterReading
+            if !saved.hasMeterReading { singleMeter = !defaultTariffs; pricingWithTariffs = defaultTariffs }
         }
         if let saved = existingSession {
             sessionID = saved.id; energy = saved.energyText; cost = saved.costText
             if request.checkpoint == nil { date = saved.date }
         }
+        prefillMeter()
+    }
+
+    private func prefillMeter() {
+        guard !editing, [meter, t1, t2] == prefilledValues else { return }
+        meter = ""; t1 = ""; t2 = ""
+        if let previous = previousMeter {
+            if singleMeter { meter = Numbers.string(previous.reading.total) }
+            else if previous.meterTotalText == nil { t1 = previous.t1Text; t2 = previous.t2Text }
+        }
+        prefilledValues = [meter, t1, t2]
     }
 
     private var reading: Reading? {
         guard !isOutside || closesCycle else { return nil }
         let first: Decimal, second: Decimal, total: Decimal?
-        if isOutside {
+        if !hasHomeData || isOutside {
             let completed = request.checkpoint?.reading
             first = completed?.t1 ?? 0; second = completed?.t2 ?? 0; total = completed?.meterTotal
         }
@@ -251,11 +281,12 @@ private struct ChargingForm: View {
                        isBaseline: isBaseline, tripA: request.checkpoint?.reading.tripA,
                        tripB: closesCycle && !isBaseline ? Numbers.parse(tripB) : request.checkpoint?.reading.tripB,
                        battery: closesCycle ? 100 : request.checkpoint?.battery,
-                       hasMeterReading: !isOutside || (request.checkpoint?.hasMeterReading ?? false), meterTotal: total)
+                       hasMeterReading: hasHomeData, meterTotal: total)
     }
 
     private var outsideCharge: Charge? {
-        guard isOutside, let value = Numbers.parse(energy), value > 0, let price = Numbers.parse(cost) else { return nil }
+        guard isOutside || (request.kind == .cycle && existingSession != nil),
+              let value = Numbers.parse(energy), value > 0, let price = Numbers.parse(cost) else { return nil }
         return Charge(id: existingSession?.id ?? sessionID, date: date, energy: value, cost: price,
                       location: existingSession?.location ?? "")
     }
@@ -274,7 +305,9 @@ private struct ChargingForm: View {
 
     private func save() {
         guard date <= .now else { error = "Choose a date in the past or present."; return }
-        if isOutside && outsideCharge == nil { error = "Enter charging energy and the total price (0 for free)."; return }
+        if (isOutside || (request.kind == .cycle && existingSession != nil)) && outsideCharge == nil {
+            error = "Enter charging energy and the total price (0 for free)."; return
+        }
         if closesCycle && !isBaseline && Numbers.parse(tripB) == nil { error = "Enter the kilometres shown on Trip B."; return }
         if !isOutside || closesCycle {
             guard let candidate = reading else { error = "Enter the meter counter and valid prices."; return }
@@ -298,12 +331,20 @@ private struct ChargingForm: View {
                 if let charge = draft.charge { context.insert(OutsideCharge(charge: charge)) }
             }
             if let candidate = reading {
+                let previousHomeData = request.checkpoint?.reading
                 let saved: Checkpoint
                 if let existing = request.checkpoint { existing.update(with: candidate); saved = existing }
                 else { saved = Checkpoint(reading: candidate); context.insert(saved) }
-                saved.endedOutside = isOutside
-                if isOutside && !saved.hasMeterReading { saved.homeDataStatus = "pending" }
-                if isOutside { saved.linkedChargeID = outsideCharge?.id }
+                saved.endedOutside = request.checkpoint?.endedOutside ?? (isOutside || !hasHomeData)
+                let sameMeter = previousHomeData.map {
+                    $0.hasMeterReading && $0.t1 == candidate.t1 && $0.t2 == candidate.t2 && $0.meterTotal == candidate.meterTotal
+                } ?? false
+                if !saved.hasMeterReading { saved.homeDataStatus = "pending"; saved.homeDataAddedAt = nil }
+                else if !sameMeter || saved.homeDataStatus == nil || saved.homeDataStatus == "pending" {
+                    saved.homeDataStatus = "entered"; saved.homeDataAddedAt = .now
+                }
+                if outsideCharge != nil { saved.linkedChargeID = outsideCharge?.id }
+                if let monthly = monthlyRecords.first(where: { $0.id == candidate.id }) { monthly.date = candidate.date }
             }
             try context.save()
             onSaved(request.checkpoint == nil && closesCycle ? "Now reset Trip B in your car. Trip A keeps running." : nil)

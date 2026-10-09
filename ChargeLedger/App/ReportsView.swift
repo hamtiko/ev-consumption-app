@@ -36,11 +36,15 @@ struct ReportsView: View {
                 .pickerStyle(.segmented)
                 if summaries.isEmpty {
                     ContentUnavailableView("No reports yet", systemImage: "chart.xyaxis.line",
-                        description: Text(mode == .monthly ? "Record Trip A after completing a month." : "Record two 100% checkpoints to complete a cycle. Home readings complete the energy totals."))
+                        description: Text(mode == .monthly ? "Record your home meter on the 1st. Trip A kilometres are optional." : "Record two 100% checkpoints to complete a cycle. Home readings complete the energy totals."))
                 } else {
                     HStack {
-                        Metric(title: "Distance", value: LedgerStyle.number(summaries.reduce(0) { $0 + $1.distance }), unit: "km")
-                        if summaries.contains(where: \.homeEnergyKnown) {
+                        if mode == .monthly {
+                            let known = summaries.filter(\.homeEnergyKnown)
+                            Metric(title: "Home energy · measured", value: LedgerStyle.number(known.isEmpty ? nil : known.reduce(0) { $0 + $1.homeEnergy }), unit: "kWh")
+                            Metric(title: "Utility bill contribution", value: LedgerStyle.number(known.isEmpty ? nil : known.reduce(0) { $0 + $1.estimatedHomeCost }), unit: "AMD")
+                        } else {
+                            Metric(title: "Distance", value: LedgerStyle.number(summaries.reduce(0) { $0 + $1.distance }), unit: "km")
                             Metric(title: "Consumption · complete data", value: LedgerStyle.number(Ledger.weightedEfficiency(summaries), digits: 2), unit: "kWh/100 km")
                         }
                     }
@@ -49,7 +53,16 @@ struct ReportsView: View {
                         Text("Home energy reports cover the trips between complete meter readings. Adding missing home data can split them into individual 100% cycles.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    if summaries.contains(where: \.homeEnergyKnown) {
+                    if mode == .monthly {
+                        chartCard("Home charging energy", note: "Two consecutive monthly meter readings measure the home energy. Late readings cover their actual dates. Outside charging does not affect the utility bill.") {
+                            Chart(summaries) { summary in
+                                if summary.homeEnergyKnown {
+                                    BarMark(x: .value("Month", chartDate(summary)), y: .value("kWh", Numbers.double(summary.homeEnergy)))
+                                        .foregroundStyle(LedgerStyle.accent)
+                                }
+                            }
+                        }
+                    } else if summaries.contains(where: \.homeEnergyKnown) {
                         chartCard("Charging energy per 100 km", note: "Complete reports only. Partial data is excluded from this chart and the consumption average.") {
                             Chart(summaries) { summary in
                                 if let value = summary.energyPer100KM {
@@ -61,13 +74,17 @@ struct ReportsView: View {
                             }
                         }
                     }
-                    chartCard(mode == .monthly ? "Monthly mileage" : "Distance driven", note: mode == .monthly ? "Trip A · independent of Trip B resets." : "Trip B distances for each period.") {
-                        Chart(summaries) { summary in
-                            BarMark(x: .value("Period", chartDate(summary)), y: .value("km", Numbers.double(summary.distance)))
-                                .foregroundStyle(LedgerStyle.accent)
+                    if summaries.contains(where: \.distanceKnown) {
+                        chartCard(mode == .monthly ? "Monthly mileage · optional" : "Distance driven", note: mode == .monthly ? "Recorded Trip A only. Months without mileage are omitted." : "Trip B distances for each period.") {
+                            Chart(summaries) { summary in
+                                if summary.distanceKnown {
+                                    BarMark(x: .value("Period", chartDate(summary)), y: .value("km", Numbers.double(summary.distance)))
+                                        .foregroundStyle(LedgerStyle.accent)
+                                }
+                            }
                         }
                     }
-                    chartCard("Charging cost logged", note: "Outside amounts are paid costs. Home estimates appear when the required meter readings are complete.") {
+                    chartCard("Charging cost logged", note: "Home is the estimated utility bill contribution at saved prices. Outside payments are separate and do not increase your utility bill. Missing home totals are omitted.") {
                         Chart(summaries) { summary in
                             if summary.homeEnergyKnown {
                                 BarMark(x: .value("Period", chartDate(summary)), y: .value("AMD", Numbers.double(summary.estimatedHomeCost)))
@@ -87,13 +104,20 @@ struct ReportsView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(summary.month.map(LedgerStyle.month) ?? summary.end.formatted(date: .abbreviated, time: .omitted))
                                         .font(.headline).foregroundStyle(.primary)
-                                    Text("\(LedgerStyle.number(summary.distance)) km")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                    if mode == .monthly && summary.homeEnergyKnown {
+                                        Text("Home: \(LedgerStyle.number(summary.homeEnergy)) kWh · \(LedgerStyle.number(summary.estimatedHomeCost)) AMD")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    if summary.distanceKnown {
+                                        Text("\(LedgerStyle.number(summary.distance)) km")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
                                     if !summary.homeEnergyKnown && mode != .monthly {
                                         Label("Partial data · add home reading", systemImage: "exclamationmark.circle.fill")
                                             .font(.caption).foregroundStyle(.orange)
                                     } else if mode == .monthly && !summary.homeEnergyKnown {
-                                        Text("Mileage and outside sessions").font(.caption).foregroundStyle(.secondary)
+                                        Text("Home cost pending · needs consecutive monthly meter readings")
+                                            .font(.caption).foregroundStyle(.orange)
                                     }
                                 }
                                 Spacer()
@@ -152,7 +176,11 @@ private struct PeriodDetailView: View {
                         LabeledContent("Started", value: summary.start.formatted(date: .abbreviated, time: .shortened))
                         LabeledContent("Ended", value: summary.end.formatted(date: .abbreviated, time: .shortened))
                     }
-                    LabeledContent("Distance", value: "\(LedgerStyle.number(summary.distance)) km")
+                    LabeledContent("Distance", value: summary.distanceKnown ? "\(LedgerStyle.number(summary.distance)) km" : "Not recorded")
+                    if mode == .monthly && summary.homeEnergyKnown {
+                        LabeledContent("Meter period started", value: summary.start.formatted(date: .abbreviated, time: .shortened))
+                        LabeledContent("Meter period ended", value: summary.end.formatted(date: .abbreviated, time: .shortened))
+                    }
                     if summary.cycleCount > 1 { LabeledContent("100% cycles covered", value: String(summary.cycleCount)) }
                 }
                 Section("Energy") {
@@ -160,21 +188,34 @@ private struct PeriodDetailView: View {
                     LabeledContent("Outside logged", value: "\(LedgerStyle.number(summary.outsideEnergy, digits: 2)) kWh")
                     if summary.homeEnergyKnown {
                         LabeledContent("Total", value: "\(LedgerStyle.number(summary.totalEnergy, digits: 2)) kWh")
-                        LabeledContent("Consumption", value: "\(LedgerStyle.number(summary.energyPer100KM, digits: 2)) kWh/100 km")
+                        if summary.distanceKnown {
+                            LabeledContent("Consumption", value: "\(LedgerStyle.number(summary.energyPer100KM, digits: 2)) kWh/100 km")
+                        }
                     }
                 }
                 Section("Cost") {
                     LabeledContent("Outside · actual paid", value: "\(LedgerStyle.number(summary.outsideCost, digits: 2)) AMD")
                     if summary.homeEnergyKnown {
-                        LabeledContent("Home · saved prices", value: "\(LedgerStyle.number(summary.estimatedHomeCost, digits: 2)) AMD")
+                        LabeledContent(mode == .monthly ? "Utility bill contribution · estimated" : "Home · saved prices", value: "\(LedgerStyle.number(summary.estimatedHomeCost, digits: 2)) AMD")
                         LabeledContent("Total estimated", value: "\(LedgerStyle.number(summary.estimatedTotalCost, digits: 2)) AMD")
-                        LabeledContent("Estimated per kilometre", value: "\(LedgerStyle.number(summary.costPerKM, digits: 2)) AMD/km")
+                        if summary.distanceKnown {
+                            LabeledContent("Estimated per kilometre", value: "\(LedgerStyle.number(summary.costPerKM, digits: 2)) AMD/km")
+                        }
                     }
                 }
                 if mode == .monthly && !summary.homeEnergyKnown {
                     Section {
-                        Text("Trip A records monthly distance. With meter readings taken at 100% charges, home energy spanning a month boundary cannot be split exactly. See 100% cycles or Energy for complete consumption reports.")
+                        Text("Home cost needs meter readings for both ends of this month. The first monthly reading establishes the next month’s starting counter. Monthly meter readings never reset Trip B; Trip A is optional.")
                             .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                if mode == .monthly {
+                    Section {
+                        Text("Home totals use the actual interval between the monthly readings and prices saved on each meter record. Read on the 1st for a calendar-month comparison, or align readings with your utility billing period. Outside sessions shown here cover the same measured period when home data is available.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                        if let record = mileage.first(where: { $0.id == id }) {
+                            Button("Edit monthly readings") { add(EntryRequest(kind: .month, mileage: record)) }
+                        }
                     }
                 }
                 ForEach(checkpoints.filter { $0.hasMeterReading && ($0.endedOutside || $0.linkedChargeID != nil) && ($0.id == id || summary.start == $0.date) }) { reading in
@@ -189,7 +230,7 @@ private struct PeriodDetailView: View {
                 ContentUnavailableView("Report no longer available", systemImage: "chart.xyaxis.line")
             }
         }
-        .navigationTitle(mode == .monthly ? "Monthly mileage" : "Charging report")
+        .navigationTitle(mode == .monthly ? "Monthly utility report" : "Charging report")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

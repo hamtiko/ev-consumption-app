@@ -68,7 +68,7 @@ final class Checkpoint {
     var title: String {
         if isBaseline { return "Starting readings" }
         if !closesCycle { return "Home meter reading" }
-        return endedOutside ? "Outside charge · 100%" : "Home charge · 100%"
+        return "100% cycle"
     }
 }
 
@@ -81,11 +81,12 @@ final class MonthlyMileage {
 
     init(record: MileageRecord) {
         id = record.id; date = record.date; month = record.month
-        distanceText = Numbers.string(record.distance)
+        distanceText = record.distanceKnown ? Numbers.string(record.distance) : ""
     }
 
     var record: MileageRecord {
-        MileageRecord(id: id, date: date, month: month, distance: Numbers.parse(distanceText) ?? 0)
+        MileageRecord(id: id, date: date, month: month, distance: Numbers.parse(distanceText) ?? 0,
+                      distanceKnown: Numbers.parse(distanceText) != nil)
     }
 }
 
@@ -118,8 +119,8 @@ enum EntryKind: String, Identifiable {
     var title: String {
         switch self {
         case .baseline: "Starting readings"
-        case .month: "Monthly mileage"
-        case .cycle: "Home charge · 100%"
+        case .month: "Start new month"
+        case .cycle: "Log 100% cycle"
         case .outside: "Outside charging"
         case .legacyMeter: "Home meter reading"
         case .homeData: "Complete home data"

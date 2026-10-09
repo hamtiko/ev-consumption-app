@@ -15,14 +15,13 @@ struct OverviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(spacing: 10) {
-                    action(.outside, detail: "Partial or 100% · kWh and amount paid")
-                    action(.cycle, detail: "Meter counter and Trip B")
-                    action(.month, detail: "Trip A only · reset on the 1st")
+                    action(.cycle, detail: "Trip B, home meter and outside sessions")
+                    action(.month, detail: "Home meter · optional Trip A on the 1st")
                 }
                 if checkpoints.first(where: \.hasMeterReading) == nil {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Start tracking home energy").font(.headline)
-                        Text("Set a starting meter reading, or start with your next full home charge.")
+                        Text("Set a starting meter reading, or start with your next 100% cycle or monthly reading.")
                             .font(.subheadline).foregroundStyle(.secondary)
                         Button("Set starting meter") { add(EntryRequest(kind: .baseline)) }
                     }
@@ -59,13 +58,19 @@ struct OverviewView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text(LedgerStyle.month(month.month!)).font(.headline)
                         HStack {
-                            Metric(title: "Monthly mileage · Trip A", value: LedgerStyle.number(month.distance), unit: "km")
-                            Metric(title: "Outside cost logged", value: LedgerStyle.number(month.outsideCost), unit: "AMD")
+                            Metric(title: "Home energy", value: LedgerStyle.number(month.homeEnergyKnown ? month.homeEnergy : nil), unit: "kWh")
+                            Metric(title: "Utility bill contribution", value: LedgerStyle.number(month.homeEnergyKnown ? month.estimatedHomeCost : nil), unit: "AMD")
                         }
+                        if month.distanceKnown {
+                            Text("Trip A: \(LedgerStyle.number(month.distance)) km").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Text(month.homeEnergyKnown ? "Home cost uses saved prices and the interval between monthly meter readings. Outside charging is separate."
+                             : "Add two consecutive monthly meter readings to measure the home charging cost.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(20).background(.background, in: RoundedRectangle(cornerRadius: 20))
                 }
-                Text("Partial home charges need no entry. Outside sessions can be logged immediately or together when you close a 100% cycle.")
+                Text("Partial home charges need no entry. Add outside sessions when you log a 100% cycle. Monthly meter readings measure the car’s contribution to your utility bill.")
                     .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 4)
             }
             .padding(16)
