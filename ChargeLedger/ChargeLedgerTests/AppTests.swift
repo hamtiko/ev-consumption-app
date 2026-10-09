@@ -6,6 +6,32 @@ import ChargeLedgerCore
 
 @MainActor
 final class AppTests: XCTestCase {
+    func testCompletedMonthFollowsReadingDateAcrossYearAndLeapBoundaries() {
+        let formatter = ISO8601DateFormatter()
+        let examples = [
+            ("2026-10-01T08:00:00Z", "2026-09-01T12:00:00Z"),
+            ("2026-10-02T08:00:00Z", "2026-09-01T12:00:00Z"),
+            ("2026-01-01T08:00:00Z", "2025-12-01T12:00:00Z"),
+            ("2024-03-31T08:00:00Z", "2024-02-01T12:00:00Z")
+        ]
+        for (reading, expected) in examples {
+            XCTAssertEqual(MonthIdentity.previous(to: formatter.date(from: reading)!, calendar: Ledger.monthCalendar),
+                           formatter.date(from: expected))
+        }
+    }
+
+    func testCompletedMonthUsesLocalReadingDateAndStableMonthIdentity() {
+        var calendar = Calendar(identifier: .gregorian)
+        let formatter = ISO8601DateFormatter()
+        let boundary = formatter.date(from: "2026-09-30T22:00:00Z")!
+        calendar.timeZone = TimeZone(secondsFromGMT: 4 * 3600)!
+        XCTAssertEqual(MonthIdentity.previous(to: boundary, calendar: calendar),
+                       formatter.date(from: "2026-09-01T12:00:00Z"))
+        calendar.timeZone = TimeZone(secondsFromGMT: -7 * 3600)!
+        XCTAssertEqual(MonthIdentity.previous(to: boundary, calendar: calendar),
+                       formatter.date(from: "2026-08-01T12:00:00Z"))
+    }
+
     func testSwiftDataRoundTripRetainsPriceOverrideAndLink() throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self, configurations: config)

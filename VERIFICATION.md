@@ -7,6 +7,7 @@ Development environment: Linux with an official temporary Swift 6.0.3 toolchain.
 - **23 XCTest calculation tests compiled and ran with zero failures.** Coverage includes the screenshot's January totals; independent Trip A/B periods; partial and deferred outside charging; charge ownership at cycle boundaries; per-record prices; tariff and single-counter continuity; backdated validation; weighted consumption; and zero distance.
 - New tests exercise pending outside-cycle reports, later home data completing both adjacent reports, carrying forward an unchanged meter, confirming no home charging across several pending checkpoints, excluding future/unknown readings, complete energy windows spanning several trips, and monthly mileage without any meter reading or Trip B reset.
 - Swift compiler parsing of all native app and native test sources in Swift 5 language mode.
+- Two Foundation date tests passed in a standalone Linux XCTest harness using the app's month helper: automatic month selection for on-time/late readings, January and leap-year boundaries, and local-timezone month boundaries. The SwiftUI form itself still requires Xcode verification.
 - Xcode project and source checks: source membership, all object references, shared scheme, local package, test sources, and asset catalog files.
 
 ## Requires Xcode / an iPhone

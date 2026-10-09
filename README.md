@@ -22,6 +22,8 @@ The checked-in project is ready to open. `python3 Tools/create_project.py` regen
 
 **Outside charging** starts as a short form. Enable **Charged to 100%** to reveal Trip B and close the cycle. **Home charge · 100%** asks for the meter and Trip B immediately. **Monthly mileage** is independent of charging: it never asks for meter readings or closes Trip B.
 
+Monthly mileage automatically uses the month before the reading date: October 1 or October 2 both complete September. Changing the reading date updates the completed month. **Change completed month** offers a month/year override for older records; editing an existing record preserves its saved month.
+
 Both full-charge forms list already recorded outside sessions and let you **Add earlier outside session** for every partial charge you deferred. Session dates must fall within the current cycle. If the final outside session is already saved, use that session or edit it in Journal and mark it as 100%; its ID is reused instead of creating a duplicate.
 
 A saved full-charge record reminds you to reset Trip B, including when converting a saved partial session to a full-charge checkpoint. A new monthly record reminds you to reset Trip A. The app cannot reset the car's counters itself.
