@@ -4,9 +4,21 @@ import Charts
 import ChargeLedgerCore
 
 private enum ReportMode: String, CaseIterable {
-    case cycles = "100% cycles"
-    case energy = "Energy"
+    case consumption = "Consumption"
     case monthly = "Monthly"
+    case stations = "Brands"
+}
+
+private extension ReportRange {
+    var label: String {
+        switch self {
+        case .threeMonths: "3 months"
+        case .sixMonths: "6 months"
+        case .twelveMonths: "12 months"
+        case .yearToDate: "This year"
+        case .all: "All time"
+        }
+    }
 }
 
 struct ReportsView: View {
@@ -14,14 +26,20 @@ struct ReportsView: View {
     @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
     @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
     @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
-    @State private var mode = ReportMode.cycles
-    @State private var monthsToShow = 6
-    private var summaries: [PeriodSummary] {
-        let all = reports(mode: mode, checkpoints: checkpoints, charges: charges, mileage: mileage)
-        guard monthsToShow > 0, let start = Calendar.current.dateInterval(of: .month, for: .now)?.start,
-              let cutoff = Calendar.current.date(byAdding: .month, value: -monthsToShow, to: start) else { return all }
-        return all.filter { ($0.month ?? $0.end) >= cutoff }
+    @State private var mode = ReportMode.consumption
+    @State private var range = ReportRange.sixMonths
+    @State private var selectedCycleID: UUID?
+    private var cycles: [PeriodSummary] {
+        Ledger.cycles(readings: checkpoints.map(\.reading), charges: charges.map(\.charge))
+            .filter { range.includes($0.end, through: .now) }
     }
+    private var allMonths: [PeriodSummary] {
+        Ledger.months(readings: checkpoints.map(\.reading), charges: charges.map(\.charge), mileage: mileage.map(\.record))
+    }
+    private var months: [PeriodSummary] {
+        allMonths.filter { $0.month.map { range.includesMonth($0, through: .now) } == true && $0.end <= .now }
+    }
+    private var outside: [OutsideCharge] { charges.filter { range.includes($0.date, through: .now) } }
 
     var body: some View {
         ScrollView {
@@ -30,118 +48,174 @@ struct ReportsView: View {
                     ForEach(ReportMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                Picker("History", selection: $monthsToShow) {
-                    Text("6 months").tag(6); Text("12 months").tag(12); Text("All").tag(0)
+                Picker("Date range", selection: $range) {
+                    ForEach(ReportRange.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
-                .pickerStyle(.segmented)
-                if summaries.isEmpty {
-                    ContentUnavailableView("No reports yet", systemImage: "chart.xyaxis.line",
-                        description: Text(mode == .monthly ? "Record your home meter on the 1st. Trip A kilometres are optional." : "Record two 100% checkpoints to complete a cycle. Home readings complete the energy totals."))
-                } else {
-                    HStack {
-                        if mode == .monthly {
-                            let known = summaries.filter(\.homeEnergyKnown)
-                            Metric(title: "Home energy · measured", value: LedgerStyle.number(known.isEmpty ? nil : known.reduce(0) { $0 + $1.homeEnergy }), unit: "kWh")
-                            Metric(title: "Utility bill contribution", value: LedgerStyle.number(known.isEmpty ? nil : known.reduce(0) { $0 + $1.estimatedHomeCost }), unit: "AMD")
-                        } else {
-                            Metric(title: "Distance", value: LedgerStyle.number(summaries.reduce(0) { $0 + $1.distance }), unit: "km")
-                            Metric(title: "Consumption · complete data", value: LedgerStyle.number(Ledger.weightedEfficiency(summaries), digits: 2), unit: "kWh/100 km")
-                        }
-                    }
-                    .padding(18).background(.background, in: RoundedRectangle(cornerRadius: 20))
-                    if mode == .energy {
-                        Text("Home energy reports cover the trips between complete meter readings. Adding missing home data can split them into individual 100% cycles.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    if mode == .monthly {
-                        chartCard("Home charging energy", note: "Two consecutive monthly meter readings measure the home energy. Late readings cover their actual dates. Outside charging does not affect the utility bill.") {
-                            Chart(summaries) { summary in
-                                if summary.homeEnergyKnown {
-                                    BarMark(x: .value("Month", chartDate(summary)), y: .value("kWh", Numbers.double(summary.homeEnergy)))
-                                        .foregroundStyle(LedgerStyle.accent)
-                                }
-                            }
-                        }
-                    } else if summaries.contains(where: \.homeEnergyKnown) {
-                        chartCard("Charging energy per 100 km", note: "Complete reports only. Partial data is excluded from this chart and the consumption average.") {
-                            Chart(summaries) { summary in
-                                if let value = summary.energyPer100KM {
-                                    LineMark(x: .value("Period", chartDate(summary)), y: .value("kWh/100 km", Numbers.double(value)))
-                                        .foregroundStyle(LedgerStyle.accent)
-                                    PointMark(x: .value("Period", chartDate(summary)), y: .value("kWh/100 km", Numbers.double(value)))
-                                        .foregroundStyle(LedgerStyle.accent)
-                                }
-                            }
-                        }
-                    }
-                    if summaries.contains(where: \.distanceKnown) {
-                        chartCard(mode == .monthly ? "Monthly mileage · optional" : "Distance driven", note: mode == .monthly ? "Recorded Trip A only. Months without mileage are omitted." : "Trip B distances for each period.") {
-                            Chart(summaries) { summary in
-                                if summary.distanceKnown {
-                                    BarMark(x: .value("Period", chartDate(summary)), y: .value("km", Numbers.double(summary.distance)))
-                                        .foregroundStyle(LedgerStyle.accent)
-                                }
-                            }
-                        }
-                    }
-                    chartCard("Charging cost logged", note: "Home is the estimated utility bill contribution at saved prices. Outside payments are separate and do not increase your utility bill. Missing home totals are omitted.") {
-                        Chart(summaries) { summary in
-                            if summary.homeEnergyKnown {
-                                BarMark(x: .value("Period", chartDate(summary)), y: .value("AMD", Numbers.double(summary.estimatedHomeCost)))
-                                    .foregroundStyle(by: .value("Source", "Home"))
-                            }
-                            BarMark(x: .value("Period", chartDate(summary)), y: .value("AMD", Numbers.double(summary.outsideCost)))
-                                .foregroundStyle(by: .value("Source", "Outside"))
-                        }
-                        .chartForegroundStyleScale(["Home": LedgerStyle.accent, "Outside": LedgerStyle.outside])
-                    }
-                    Text("Period details").font(.headline)
-                    ForEach(summaries.reversed()) { summary in
-                        NavigationLink {
-                            PeriodDetailView(id: summary.id, mode: mode, add: add)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(summary.month.map(LedgerStyle.month) ?? summary.end.formatted(date: .abbreviated, time: .omitted))
-                                        .font(.headline).foregroundStyle(.primary)
-                                    if mode == .monthly && summary.homeEnergyKnown {
-                                        Text("Home: \(LedgerStyle.number(summary.homeEnergy)) kWh · \(LedgerStyle.number(summary.estimatedHomeCost)) AMD")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                    if summary.distanceKnown {
-                                        Text("\(LedgerStyle.number(summary.distance)) km")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                    if !summary.homeEnergyKnown && mode != .monthly {
-                                        Label("Partial data · add home reading", systemImage: "exclamationmark.circle.fill")
-                                            .font(.caption).foregroundStyle(.orange)
-                                    } else if mode == .monthly && !summary.homeEnergyKnown {
-                                        Text("Home cost pending · needs consecutive monthly meter readings")
-                                            .font(.caption).foregroundStyle(.orange)
-                                    }
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right").font(.caption)
-                            }
-                            .padding(16).background(.background, in: RoundedRectangle(cornerRadius: 16))
-                        }
-                    }
+                .pickerStyle(.menu)
+                switch mode {
+                case .consumption: consumptionReport
+                case .monthly: monthlyReport
+                case .stations: brandReport
                 }
             }
             .padding(16)
         }
         .background(LedgerStyle.background)
         .navigationTitle("Reports")
+        .navigationDestination(item: $selectedCycleID) { id in
+            PeriodDetailView(id: id, mode: .consumption, add: add)
+        }
     }
 
-    private func chartDate(_ summary: PeriodSummary) -> Date { summary.month ?? summary.end }
-    private func chartCard<Content: View>(_ title: String, note: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(title).font(.headline)
-            content().frame(height: 190)
-            Text(note).font(.caption).foregroundStyle(.secondary)
+    @ViewBuilder private var consumptionReport: some View {
+        if cycles.isEmpty {
+            ContentUnavailableView("No cycles in this range", systemImage: "chart.xyaxis.line",
+                description: Text("Record two 100% checkpoints to complete a cycle, or choose a wider date range."))
+        } else {
+            if let statistics = ReportAnalytics.cycleStatistics(cycles) {
+                let eligible = ReportAnalytics.eligibleCycles(cycles)
+                ReportCard(title: "\(statistics.consumption.sampleCount) completed cycles",
+                           note: "Cycles are grouped by completion date. Totals and statistics exclude pending home data and zero-distance cycles.") {
+                    HStack {
+                        Metric(title: "Distance", value: LedgerStyle.number(statistics.distance), unit: "km")
+                        Metric(title: "Energy supplied", value: LedgerStyle.number(statistics.totalEnergy), unit: "kWh")
+                    }
+                    HStack {
+                        Metric(title: "Home cost · estimated", value: LedgerStyle.number(statistics.homeCost), unit: "AMD")
+                        Metric(title: "Outside paid", value: LedgerStyle.number(statistics.outsideCost), unit: "AMD")
+                    }
+                }
+                CycleTrendChart(cycles: eligible, metric: .consumption, statistics: statistics.consumption) { selectedCycleID = $0.id }
+                CycleTrendChart(cycles: eligible, metric: .cost, statistics: statistics.costPerKM) { selectedCycleID = $0.id }
+                ChargingSourceChart(statistics: statistics)
+            } else {
+                ReportCard(title: "Consumption is not available yet") {
+                    Text("Complete the home readings for a cycle with kilometres driven. Pending cycles remain listed below and automatically join the charts when completed.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            let pending = cycles.filter { !$0.homeEnergyKnown }
+            if !pending.isEmpty {
+                Label("\(pending.count) cycle\(pending.count == 1 ? "" : "s") with home data pending",
+                      systemImage: "clock.badge.exclamationmark")
+                    .font(.subheadline).foregroundStyle(.orange)
+                Text("Open a pending cycle below to add home data or confirm no home charging. It is excluded from averages, min/max and consumption charts until completed.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            periodLinks(cycles, mode: .consumption)
         }
-        .padding(18).background(.background, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    @ViewBuilder private var monthlyReport: some View {
+        if months.isEmpty {
+            ContentUnavailableView("No monthly records in this range", systemImage: "calendar",
+                description: Text("Record the home meter on the 1st. Trip A kilometres are optional."))
+        } else {
+            let known = months.filter(\.homeEnergyKnown)
+            ReportCard(title: "Monthly utility costs", note: "Home cost is estimated from saved prices. Outside payments do not affect your utility bill.") {
+                HStack {
+                    Metric(title: "Home energy · measured", value: LedgerStyle.number(known.isEmpty ? nil : known.reduce(0) { $0 + $1.homeEnergy }), unit: "kWh")
+                    Metric(title: "Utility bill contribution", value: LedgerStyle.number(known.isEmpty ? nil : known.reduce(0) { $0 + $1.estimatedHomeCost }), unit: "AMD")
+                }
+                if let latest = months.last, let change = ReportAnalytics.monthlyCostChange(for: latest, reports: allMonths) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(LedgerStyle.month(latest.month!)) versus previous month").font(.caption).foregroundStyle(.secondary)
+                        Text("\(change.amount > 0 ? "+" : "")\(LedgerStyle.number(change.amount)) AMD\(change.percent.map { " · \($0 > 0 ? "+" : "")\(LedgerStyle.number($0))%" } ?? "")")
+                            .font(.headline).monospacedDigit()
+                    }
+                }
+            }
+            ReportCard(title: "Home charging energy · kWh", note: "Two consecutive monthly meter readings are required. Late readings cover their actual dates, shown in the details.") {
+                Chart(known) { summary in
+                    BarMark(x: .value("Month", summary.month!), y: .value("kWh", Numbers.double(summary.homeEnergy)))
+                        .foregroundStyle(LedgerStyle.accent)
+                }
+                .frame(height: 200)
+            }
+            ReportCard(title: "Home versus outside spending · AMD", note: "Missing home totals are omitted. Outside sessions use the measured interval when both monthly meter readings exist.") {
+                Chart(months) { summary in
+                    if summary.homeEnergyKnown {
+                        BarMark(x: .value("Month", summary.month!), y: .value("AMD", Numbers.double(summary.estimatedHomeCost)))
+                            .foregroundStyle(by: .value("Source", "Home"))
+                    }
+                    BarMark(x: .value("Month", summary.month!), y: .value("AMD", Numbers.double(summary.outsideCost)))
+                        .foregroundStyle(by: .value("Source", "Outside"))
+                }
+                .chartForegroundStyleScale(["Home": LedgerStyle.accent, "Outside": LedgerStyle.outside])
+                .frame(height: 200)
+            }
+            if months.contains(where: \.distanceKnown) {
+                ReportCard(title: "Monthly mileage · km", note: "Recorded Trip A only. Months without mileage are omitted.") {
+                    Chart(months.filter(\.distanceKnown)) { summary in
+                        BarMark(x: .value("Month", summary.month!), y: .value("km", Numbers.double(summary.distance)))
+                            .foregroundStyle(LedgerStyle.accent)
+                    }
+                    .frame(height: 180)
+                }
+            }
+            periodLinks(months, mode: .monthly)
+        }
+    }
+
+    @ViewBuilder private var brandReport: some View {
+        let brands = ReportAnalytics.brands(charges: outside.map(\.charge))
+        if brands.isEmpty {
+            ContentUnavailableView("No outside sessions in this range", systemImage: "bolt.car",
+                description: Text("Add outside sessions to a 100% cycle and enter or choose a charging brand."))
+        } else {
+            ReportCard(title: "Outside charging", note: "Sessions are filtered by charging date, including sessions in pending cycles. Old records without a brand remain under Unspecified.") {
+                HStack {
+                    Metric(title: "Sessions", value: String(outside.count), unit: "")
+                    Metric(title: "Energy added", value: LedgerStyle.number(brands.reduce(0) { $0 + $1.energy }), unit: "kWh")
+                }
+                Metric(title: "Actual amount paid", value: LedgerStyle.number(brands.reduce(0) { $0 + $1.cost }), unit: "AMD")
+            }
+            BrandComparisonChart(brands: brands)
+            Text("Brand details").font(.headline)
+            ForEach(brands) { brand in
+                NavigationLink {
+                    BrandDetailView(brandID: brand.id, name: brand.name, range: range, add: add)
+                } label: {
+                    ReportCard(title: brand.name) {
+                        HStack {
+                            Metric(title: "Energy share", value: LedgerStyle.number(brand.energyShare), unit: "%")
+                            Metric(title: "Average paid price", value: LedgerStyle.number(brand.pricePerKWh, digits: 2), unit: "AMD/kWh")
+                        }
+                        Text("\(brand.sessions) sessions · \(LedgerStyle.number(brand.energy)) kWh · \(LedgerStyle.number(brand.cost)) AMD")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func periodLinks(_ summaries: [PeriodSummary], mode: ReportMode) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(mode == .monthly ? "Month details" : "Cycle details").font(.headline)
+            ForEach(summaries.reversed()) { summary in
+                NavigationLink { PeriodDetailView(id: summary.id, mode: mode, add: add) } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(summary.month.map(LedgerStyle.month) ?? summary.end.formatted(date: .abbreviated, time: .omitted))
+                                .font(.headline).foregroundStyle(.primary)
+                            if summary.distanceKnown { Text("\(LedgerStyle.number(summary.distance)) km").font(.caption).foregroundStyle(.secondary) }
+                            if summary.homeEnergyKnown {
+                                Text(mode == .monthly ? "Home: \(LedgerStyle.number(summary.homeEnergy)) kWh · \(LedgerStyle.number(summary.estimatedHomeCost)) AMD"
+                                     : "\(LedgerStyle.number(summary.energyPer100KM, digits: 2)) kWh/100 km · \(LedgerStyle.number(summary.costPerKM, digits: 2)) AMD/km")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Label(mode == .monthly ? "Home cost pending" : "Home data pending", systemImage: "clock")
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(16).background(.background, in: RoundedRectangle(cornerRadius: 16))
+                }
+            }
+        }
     }
 }
 
@@ -159,7 +233,7 @@ private struct PeriodDetailView: View {
             if let summary {
                 if !summary.homeEnergyKnown && mode != .monthly {
                     Section {
-                        Label("This report is based on partial data", systemImage: "exclamationmark.circle.fill")
+                        Label("Home data pending", systemImage: "clock.badge.exclamationmark")
                             .foregroundStyle(.orange)
                         ForEach(checkpoints.filter { summary.missingHomeReadingIDs.contains($0.id) }) { reading in
                             Button("Add home data · \(reading.date.formatted(date: .abbreviated, time: .shortened))") {
@@ -203,6 +277,21 @@ private struct PeriodDetailView: View {
                         }
                     }
                 }
+                let sessions = charges.filter {
+                    if mode == .monthly && !summary.homeEnergyKnown {
+                        return $0.date >= summary.start && $0.date < summary.end
+                    }
+                    return $0.date > summary.start && $0.date <= summary.end
+                }
+                if !sessions.isEmpty {
+                    Section("Outside sessions") {
+                        ForEach(sessions) { session in
+                            Button { add(sessionRequest(session, checkpoints: checkpoints)) } label: {
+                                OutsideSessionReportRow(session: session)
+                            }
+                        }
+                    }
+                }
                 if mode == .monthly && !summary.homeEnergyKnown {
                     Section {
                         Text("Home cost needs meter readings for both ends of this month. The first monthly reading establishes the next month’s starting counter. Monthly meter readings never reset Trip B; Trip A is optional.")
@@ -218,7 +307,7 @@ private struct PeriodDetailView: View {
                         }
                     }
                 }
-                ForEach(checkpoints.filter { $0.hasMeterReading && ($0.endedOutside || $0.linkedChargeID != nil) && ($0.id == id || summary.start == $0.date) }) { reading in
+                ForEach(checkpoints.filter { $0.hasMeterReading && $0.closesCycle && ($0.id == id || summary.start == $0.date) }) { reading in
                     Section {
                         if reading.homeDataStatus == "unchanged" { Text("No home charging confirmed · latest meter values used") }
                         Button("Edit home data · \(reading.date.formatted(date: .abbreviated, time: .omitted))") {
@@ -235,10 +324,63 @@ private struct PeriodDetailView: View {
     }
 }
 
+private struct BrandDetailView: View {
+    let brandID: String
+    let name: String
+    let range: ReportRange
+    let add: (EntryRequest) -> Void
+    @Query(sort: \OutsideCharge.date, order: .reverse) private var charges: [OutsideCharge]
+    @Query private var checkpoints: [Checkpoint]
+    private var sessions: [OutsideCharge] {
+        charges.filter { StationBrands.key($0.stationBrand) == brandID && range.includes($0.date, through: .now) }
+    }
+    var body: some View {
+        List {
+            if let brand = ReportAnalytics.brands(charges: sessions.map(\.charge)).first {
+                Section("\(range.label) · \(brand.sessions) sessions") {
+                    LabeledContent("Energy added", value: "\(LedgerStyle.number(brand.energy)) kWh")
+                    LabeledContent("Amount paid", value: "\(LedgerStyle.number(brand.cost)) AMD")
+                    LabeledContent("Average price", value: "\(LedgerStyle.number(brand.pricePerKWh, digits: 2)) AMD/kWh")
+                }
+                Section("Sessions · tap to edit") {
+                    ForEach(sessions) { session in
+                        Button { add(sessionRequest(session, checkpoints: checkpoints)) } label: {
+                            OutsideSessionReportRow(session: session)
+                        }
+                    }
+                }
+            } else {
+                ContentUnavailableView("No sessions for this brand", systemImage: "bolt.car")
+            }
+        }
+        .navigationTitle(name)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct OutsideSessionReportRow: View {
+    let session: OutsideCharge
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(session.stationBrand ?? "Unspecified").font(.headline).foregroundStyle(.primary)
+            Text("\(session.energyText) kWh · \(session.costText) AMD").foregroundStyle(.secondary)
+            if !session.location.isEmpty { Text(session.location).font(.caption).foregroundStyle(.secondary) }
+            Text(session.date.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private func sessionRequest(_ session: OutsideCharge, checkpoints: [Checkpoint]) -> EntryRequest {
+    if let checkpoint = checkpoints.first(where: { $0.linkedChargeID == session.id }) {
+        return EntryRequest(kind: .cycle, checkpoint: checkpoint)
+    }
+    return EntryRequest(kind: .outside, charge: session)
+}
+
 private func reports(mode: ReportMode, checkpoints: [Checkpoint], charges: [OutsideCharge], mileage: [MonthlyMileage]) -> [PeriodSummary] {
     switch mode {
-    case .cycles: return Ledger.cycles(readings: checkpoints.map(\.reading), charges: charges.map(\.charge))
-    case .energy: return Ledger.measurements(readings: checkpoints.map(\.reading), charges: charges.map(\.charge))
+    case .consumption: return Ledger.cycles(readings: checkpoints.map(\.reading), charges: charges.map(\.charge))
+    case .stations: return []
     case .monthly: return Ledger.months(readings: checkpoints.map(\.reading), charges: charges.map(\.charge), mileage: mileage.map(\.record))
     }
 }

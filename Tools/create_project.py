@@ -36,7 +36,7 @@ app_refs.append(assets)
 asset_build = add('assets-build', 'PBXBuildFile', fileRef=assets)
 app_group = add('app-group', 'PBXGroup', children=app_refs, path='App', sourceTree='<group>')
 test_refs, test_build = [], []
-for path in [root / 'ChargeLedgerTests/AppTests.swift', root / 'Core/Tests/ChargeLedgerCoreTests/LedgerTests.swift']:
+for path in sorted((root / 'ChargeLedgerTests').glob('*.swift')) + sorted((root / 'Core/Tests/ChargeLedgerCoreTests').glob('*.swift')):
     ref = add('file:' + path.name, 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=str(path.relative_to(root)), sourceTree='SOURCE_ROOT')
     test_refs.append(ref)
     test_build.append(add('build:' + path.name, 'PBXBuildFile', fileRef=ref))

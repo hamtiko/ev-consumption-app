@@ -166,7 +166,7 @@ enum CSVExport {
         let headers = ["record_type", "id", "recorded_at", "reading_time", "month_boundary", "is_baseline", "closes_cycle",
                        "t1_kwh", "t2_kwh", "trip_a_km", "trip_b_km", "battery_percent", "home_pricing",
                        "single_price_amd_kwh", "t1_price_amd_kwh", "t2_price_amd_kwh", "outside_kwh", "outside_amd", "location", "linked_charge_id",
-                       "has_home_meter", "meter_total_kwh", "home_data_status", "home_data_added_at", "meter_format", "month_closed"]
+                       "has_home_meter", "meter_total_kwh", "home_data_status", "home_data_added_at", "meter_format", "month_closed", "station_brand"]
         var rows = [headers]
         for reading in readings {
             var row = [String](repeating: "", count: headers.count)
@@ -190,6 +190,7 @@ enum CSVExport {
             row[0] = "outside_charge"; row[1] = charge.id.uuidString; row[3] = charge.date.ISO8601Format()
             row[10] = charge.tripBText ?? ""; row[16] = charge.energyText
             row[17] = charge.costText; row[18] = charge.location
+            row[26] = charge.stationBrand ?? ""
             rows.append(row)
         }
         for record in mileage {

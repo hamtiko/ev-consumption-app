@@ -86,7 +86,7 @@ struct JournalView: View {
                         Text(checkpoint.meterTotalText.map { "Meter: \($0) kWh" } ?? "T1 \(checkpoint.t1Text) · T2 \(checkpoint.t2Text) kWh")
                             .font(.subheadline).foregroundStyle(.secondary)
                     } else {
-                        Label("Partial data · home reading missing", systemImage: "exclamationmark.circle.fill")
+                        Label("Home data pending", systemImage: "clock.badge.exclamationmark")
                             .font(.caption).foregroundStyle(.orange)
                     }
                     if let distance = checkpoint.tripBText { Text("Trip B: \(distance) km").font(.caption).foregroundStyle(.secondary) }
@@ -94,7 +94,10 @@ struct JournalView: View {
                         Text("No home charging · latest meter carried forward").font(.caption).foregroundStyle(.secondary)
                     }
                 case .charge(let charge):
-                    Text(charge.location.isEmpty ? "Outside charging" : charge.location).font(.headline)
+                    Text(charge.stationBrand ?? (charge.location.isEmpty ? "Outside charging" : charge.location)).font(.headline)
+                    if charge.stationBrand != nil && !charge.location.isEmpty {
+                        Text(charge.location).font(.caption).foregroundStyle(.secondary)
+                    }
                     Text("\(charge.energyText) kWh · \(charge.costText) AMD").font(.subheadline).foregroundStyle(.secondary)
                 case .mileage(let record):
                     Text("Monthly readings · \(LedgerStyle.month(record.month))").font(.headline)

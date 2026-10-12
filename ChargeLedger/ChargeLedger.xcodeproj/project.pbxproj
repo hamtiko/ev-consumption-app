@@ -85,6 +85,16 @@
 			isa = "PBXBuildFile";
 			fileRef = "7E1D84CE5AB34E29DA642139";
 		};
+		E1E09900A01C4FD9176694D3 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "ReportsCharts.swift";
+			sourceTree = "<group>";
+		};
+		EB4F9EAA279F334005DE7520 = {
+			isa = "PBXBuildFile";
+			fileRef = "E1E09900A01C4FD9176694D3";
+		};
 		E973C4A5A2787182FFFA21BB = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "sourcecode.swift";
@@ -114,6 +124,16 @@
 		D2740EFD5804A93FE8C32426 = {
 			isa = "PBXBuildFile";
 			fileRef = "03AF56BE2C9FDF9DEFBDE818";
+		};
+		C6CB267909CE4CAA294B787D = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "StationBrandField.swift";
+			sourceTree = "<group>";
+		};
+		DDCEFD51A2ED02EA6676E27D = {
+			isa = "PBXBuildFile";
+			fileRef = "C6CB267909CE4CAA294B787D";
 		};
 		1711E5981A8436B2ADB545A3 = {
 			isa = "PBXFileReference";
@@ -146,9 +166,11 @@
 				"C564D8E6C880B7838D5AF748",
 				"B94A9EFD3E53E5D7FED4FE3C",
 				"7E1D84CE5AB34E29DA642139",
+				"E1E09900A01C4FD9176694D3",
 				"E973C4A5A2787182FFFA21BB",
 				"0E1A89B6D72667098302D098",
 				"03AF56BE2C9FDF9DEFBDE818",
+				"C6CB267909CE4CAA294B787D",
 				"1711E5981A8436B2ADB545A3",
 				"8BF729FFE074CAEE622C0292",
 			);
@@ -175,11 +197,22 @@
 			isa = "PBXBuildFile";
 			fileRef = "21606B234947BB4DB2C9E1D5";
 		};
+		B70762D45B9B237063141D3A = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Core/Tests/ChargeLedgerCoreTests/ReportAnalyticsTests.swift";
+			sourceTree = "SOURCE_ROOT";
+		};
+		46DE00645BCC0C1AF20409DE = {
+			isa = "PBXBuildFile";
+			fileRef = "B70762D45B9B237063141D3A";
+		};
 		C4E2E7F217DE3642E7714F4E = {
 			isa = "PBXGroup";
 			children = (
 				"4CC88557ECD433986EC3186C",
 				"21606B234947BB4DB2C9E1D5",
+				"B70762D45B9B237063141D3A",
 			);
 			name = "Tests";
 			sourceTree = "<group>";
@@ -252,9 +285,11 @@
 				"FD825685184AF3166D56C1B1",
 				"274CA7620EE3C93FB2954837",
 				"6069D25B49A99E531B7B277E",
+				"EB4F9EAA279F334005DE7520",
 				"85E2FD86A3D8C5CE7784B7E3",
 				"C0996E5B1A31BB43291F88EE",
 				"D2740EFD5804A93FE8C32426",
+				"DDCEFD51A2ED02EA6676E27D",
 				"DE2EB8F42DADE8A886AB1E5F",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -265,6 +300,7 @@
 			files = (
 				"C18085A17A2B41A4DD477E2A",
 				"377AC052A904A3BE223B8D46",
+				"46DE00645BCC0C1AF20409DE",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -31,7 +31,7 @@ You can log cycles or monthly readings before setting a home baseline. **Set sta
 
 ## Complete a partial report later
 
-Turn off **Home meter reading available** when logging a 100% cycle while away and unable to confirm the counter. It creates a checkpoint with **home data pending**. Overview, Journal, and the cycle report highlight **Partial data**.
+Turn off **Home meter reading available** when logging a 100% cycle while away and unable to confirm the counter. It creates a checkpoint with **home data pending**. Overview, Journal, and the cycle report highlight this temporary state. There is no separate report mode for pending readings.
 
 Choose **Add home data** in Overview or the report, or swipe a Journal checkpoint to access home data:
 
@@ -40,7 +40,11 @@ Choose **Add home data** in Overview or the report, or swipe a Journal checkpoin
 
 The original charging date, Trip B, outside sessions, and outside payments remain intact. Entered versus carried-forward home data is stored separately, with an added-at timestamp. Updating a home reading automatically recalculates both adjacent cycles and removes partial-data labels when both endpoints are known. Later edits to the outside session preserve completed home information. Complete outside checkpoints offer **Edit home data** in the report or Journal.
 
-Partial reports show the distance and known outside energy/payments. They do not present missing home energy as zero or include incomplete consumption in averages.
+Pending cycles show the distance and known outside energy/payments. They do not present missing home energy as zero or appear in consumption averages, min/max or trend charts. Completing the home data automatically includes both affected cycles.
+
+## Outside charging brands
+
+Every outside session has an optional **Charging brand** field and a separate optional station/location field. Type a brand directly, or choose/search a saved brand and add a new name. Saved sessions supply the reusable brand list. Capitalization and repeated whitespace do not create separate reporting groups; existing location text is never guessed to be a brand. Old sessions remain under **Unspecified** until edited.
 
 ## Meter and prices
 
@@ -55,11 +59,13 @@ The price saved at a meter reading applies to energy since the preceding known m
 
 ## Reports
 
-- **100% cycles:** each Trip B interval, including partial-data status and completion actions.
-- **Energy:** complete home-energy windows. If outside checkpoints remain pending, a window can span multiple 100% cycles; the distance is the sum of their Trip B readings. Adding the missing home data can split that window into complete individual cycles.
+- **Consumption:** kWh/100 km and AMD/km trend charts, with average, minimum and maximum for each. Average consumption is total supplied energy divided by total distance, and average cost is total estimated charging cost divided by distance; extrema are individual-cycle values. Only cycles with complete energy and positive recorded distance qualify. Tap/drag a chart, then open the selected cycle to inspect the readings and outside sessions. Pending and zero-distance cycles remain in the detail list. Home/outside energy and spending shares and weighted AMD/kWh prices provide context.
 - **Monthly:** home kWh and estimated utility bill contribution between consecutive monthly meter readings, with outside payments shown separately. Home cost uses every intervening meter segment’s saved prices. Trip A is optional; omitted mileage is shown as unrecorded and excluded from distance charts and efficiency calculations. Late readings use their actual timestamps, displayed in the report, so totals may differ from the exact calendar month or utility billing period. Without both monthly meter boundaries, home cost remains unavailable. Legacy month-end meter readings and mileage-only records remain supported.
+- **Brands:** compare outside charging brands by kWh, actual AMD paid or session count. Each brand shows its share of outside energy and weighted AMD/kWh price (total paid divided by total kWh), with a list of editable sessions. Free sessions are included. Unassigned brands remain visible. Brand comparisons describe usage and price; they do not attribute driving efficiency to a brand.
 
-Charging energy per 100 km includes electricity supplied and charging losses. Weighted consumption uses total energy divided by total distance for reports with **complete energy and recorded distance** only. Zero-distance efficiency is unavailable. An outside session at a 100% checkpoint belongs to the ending cycle, not the next one. Missing home data is distinct from a confirmed unchanged meter.
+All three areas share **3 months / 6 months / 12 months / This year / All time** filters. Month ranges include the current calendar month and the preceding N−1 months. Consumption groups whole cycles by completion date; monthly reports use completed-month labels; brand comparisons use session charging dates, including recorded outside payments in pending cycles. Future events are excluded. Monthly home-cost changes compare only consecutive months with known home costs; a zero-cost preceding month has no percentage comparison. The separate Energy report and duplicate Overview energy card have been removed.
+
+Charging energy per 100 km includes electricity supplied and charging losses. Zero-distance efficiency is unavailable. An outside session at a 100% checkpoint belongs to the ending cycle, not the next one. Missing home data is distinct from a confirmed unchanged meter.
 
 Backdated meter edits are validated against preceding and following known readings. Total counter continuity is checked when formats change; unknown readings are skipped. Month identifiers are stable across time-zone changes. Dates can be backdated to the actual event time.
 
@@ -73,7 +79,9 @@ SwiftData stores records on-device. The update adds optional/defaulted checkpoin
 
 The unified-flow update uses the existing model schema. A monthly record and its meter checkpoint share an ID; a blank monthly distance means mileage was not recorded. The journal groups a standalone monthly meter with its monthly record. Deleting a monthly entry deletes its standalone meter checkpoint, or clears only monthly data when it shares a checkpoint with a cycle/baseline.
 
-CSV export includes raw counters, whether a home reading exists, single/tariff prices, Trip A/B, monthly-mileage records, outside sessions, pending/entered/unchanged home status, and home-data timestamps. Old optional partial-session Trip B readings remain preserved in exports, though the new partial-charge form no longer asks for them.
+The brand-report update adds an optional, nil-defaulted brand field to outside sessions; existing IDs, links, locations, prices and home readings are retained. Upgrade of a real existing SwiftData store still requires on-device verification.
+
+CSV export includes raw counters, whether a home reading exists, single/tariff prices, Trip A/B, monthly-mileage records, outside sessions, pending/entered/unchanged home status, and home-data timestamps. The station_brand column is appended after existing columns, preserving older column positions. Old optional partial-session Trip B readings remain preserved in exports, though the new partial-charge form no longer asks for them.
 
 This version does not import Excel/CSV, sync across devices, or restore exports automatically. Keep exports for independent copies and spreadsheet analysis.
 

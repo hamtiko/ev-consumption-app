@@ -21,9 +21,11 @@ private struct SessionDraft: Identifiable {
     var date: Date
     var energy = ""
     var cost = ""
+    var brand = ""
+    var location = ""
     var charge: Charge? {
         guard let energy = Numbers.parse(energy), energy > 0, let cost = Numbers.parse(cost) else { return nil }
-        return Charge(id: id, date: date, energy: energy, cost: cost)
+        return Charge(id: id, date: date, energy: energy, cost: cost, location: location, stationBrand: brand)
     }
 }
 
@@ -54,6 +56,8 @@ private struct ChargingForm: View {
     @State private var tripB = ""
     @State private var energy = ""
     @State private var cost = ""
+    @State private var brand = ""
+    @State private var location = ""
     @State private var rate = "47.5"
     @State private var rateT1 = "53.48"
     @State private var rateT2 = "43.48"
@@ -87,6 +91,9 @@ private struct ChargingForm: View {
             session.id != existingSession?.id && session.date <= date && (cycleStart.map { $0 < session.date } ?? true)
         }
     }
+    private var brandChoices: [String] {
+        StationBrands.choices(charges.map(\.stationBrand) + earlier.map { Optional($0.brand) })
+    }
 
     var body: some View {
         NavigationStack {
@@ -98,6 +105,8 @@ private struct ChargingForm: View {
                     Section {
                         DecimalField(title: "Energy added", unit: "kWh", text: $energy).focused($focused)
                         DecimalField(title: "Total paid", unit: "AMD", text: $cost).focused($focused)
+                        StationBrandField(brand: $brand, choices: brandChoices)
+                        TextField("Station / location (optional)", text: $location)
                         if isOutside {
                             Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil)
                         }
@@ -117,7 +126,7 @@ private struct ChargingForm: View {
                     Section {
                         Toggle("Home meter reading available", isOn: $homeReadingAvailable)
                     } footer: {
-                        Text("Turn this off if you are away and cannot confirm the home counter. The cycle will show partial data until you complete it.")
+                        Text("Turn this off if you are away and cannot confirm the home counter. The cycle will show home data pending until you complete it.")
                     }
                 }
                 if !isOutside && hasHomeData { homeMeterSection }
@@ -130,10 +139,9 @@ private struct ChargingForm: View {
                 }
                 if closesCycle && !isBaseline { earlierSessionsSection }
                 if let summary = preview {
-                    Section(summary.homeEnergyKnown ? "Energy since the last home reading" : "This 100% cycle") {
+                    Section("This 100% cycle") {
                         LabeledContent("Distance", value: "\(LedgerStyle.number(summary.distance)) km")
                         if summary.homeEnergyKnown {
-                            if summary.cycleCount > 1 { LabeledContent("100% cycles covered", value: String(summary.cycleCount)) }
                             LabeledContent("Total energy", value: "\(LedgerStyle.number(summary.totalEnergy, digits: 2)) kWh")
                             LabeledContent("Consumption", value: "\(LedgerStyle.number(summary.energyPer100KM, digits: 2)) kWh/100 km")
                             LabeledContent("Estimated cost", value: "\(LedgerStyle.number(summary.estimatedTotalCost, digits: 2)) AMD")
@@ -195,6 +203,7 @@ private struct ChargingForm: View {
             ForEach(loggedSessions) { session in
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(session.energyText) kWh · \(session.costText) AMD")
+                    if let brand = session.stationBrand { Text(brand).font(.caption).foregroundStyle(.secondary) }
                     Text("Already saved · \(session.date.formatted(date: .abbreviated, time: .shortened))")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -205,6 +214,7 @@ private struct ChargingForm: View {
                         Button("\(session.date.formatted(date: .abbreviated, time: .shortened)) · \(session.energyText) kWh") {
                             selectedSessionID = session.id; date = session.date
                             energy = session.energyText; cost = session.costText
+                            brand = session.stationBrand ?? ""; location = session.location
                         }
                     }
                 }
@@ -215,6 +225,8 @@ private struct ChargingForm: View {
                                in: min(cycleStart ?? .distantPast, date)...date, displayedComponents: [.date, .hourAndMinute])
                     DecimalField(title: "Energy added", unit: "kWh", text: $session.energy).focused($focused)
                     DecimalField(title: "Total paid", unit: "AMD", text: $session.cost).focused($focused)
+                    StationBrandField(brand: $session.brand, choices: brandChoices)
+                    TextField("Station / location (optional)", text: $session.location)
                     Button("Remove session", role: .destructive) { earlier.removeAll { $0.id == session.id } }
                         // Prevent Form's automatic button style from making the entire session row tappable.
                         .buttonStyle(.borderless)
@@ -245,6 +257,7 @@ private struct ChargingForm: View {
         }
         if let saved = existingSession {
             sessionID = saved.id; energy = saved.energyText; cost = saved.costText
+            brand = saved.stationBrand ?? ""; location = saved.location
             if request.checkpoint == nil { date = saved.date }
         }
         prefillMeter()
@@ -288,7 +301,7 @@ private struct ChargingForm: View {
         guard isOutside || (request.kind == .cycle && existingSession != nil),
               let value = Numbers.parse(energy), value > 0, let price = Numbers.parse(cost) else { return nil }
         return Charge(id: existingSession?.id ?? sessionID, date: date, energy: value, cost: price,
-                      location: existingSession?.location ?? "")
+                      location: location, stationBrand: StationBrands.canonicalName(brand, choices: brandChoices))
     }
 
     private var preview: PeriodSummary? {
@@ -299,8 +312,7 @@ private struct ChargingForm: View {
         var outside = charges.map(\.charge).filter { $0.id != outsideCharge?.id }
         if let charge = outsideCharge { outside.append(charge) }
         outside += earlier.compactMap(\.charge)
-        return (candidate.hasMeterReading ? Ledger.measurements(readings: readings, charges: outside)
-                : Ledger.cycles(readings: readings, charges: outside)).first { $0.id == candidate.id }
+        return Ledger.cycles(readings: readings, charges: outside).first { $0.id == candidate.id }
     }
 
     private func save() {
@@ -324,6 +336,7 @@ private struct ChargingForm: View {
                 if let saved = existingSession {
                     saved.date = charge.date; saved.energyText = Numbers.string(charge.energy)
                     saved.costText = Numbers.string(charge.cost)
+                    saved.stationBrand = charge.stationBrand; saved.location = charge.location
                     // Old optional partial Trip B readings remain preserved, but are no longer requested.
                 } else { context.insert(OutsideCharge(charge: charge)) }
             }

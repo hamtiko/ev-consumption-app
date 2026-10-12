@@ -48,11 +48,6 @@ struct OverviewView: View {
                 let cycle = Ledger.cycles(readings: readings, charges: external).last
                 SummaryCard(title: "Last 100% cycle", subtitle: "Trip B", summary: cycle,
                             emptyMessage: "The first 100% record starts a cycle. The next one closes it.")
-                let measurement = Ledger.measurements(readings: readings, charges: external).last
-                SummaryCard(title: "Latest complete energy report",
-                            subtitle: measurement.map { "\($0.cycleCount) cycle\($0.cycleCount == 1 ? "" : "s") between home readings" } ?? "Home and outside energy",
-                            summary: measurement,
-                            emptyMessage: "Complete home readings let you compare all energy supplied with the distance driven.")
                 let month = Ledger.months(readings: readings, charges: external, mileage: mileage.map(\.record)).last
                 if let month {
                     VStack(alignment: .leading, spacing: 14) {

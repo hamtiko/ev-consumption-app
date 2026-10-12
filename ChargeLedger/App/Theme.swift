@@ -45,7 +45,7 @@ struct SummaryCard: View {
             }
             if let summary {
                 if !summary.homeEnergyKnown {
-                    Label("Partial data", systemImage: "exclamationmark.circle.fill")
+                    Label("Home data pending", systemImage: "clock.badge.exclamationmark")
                         .font(.caption.weight(.semibold)).foregroundStyle(.orange)
                 }
                 HStack {
