@@ -27,7 +27,7 @@ struct SettingsView: View {
     @State private var exporting = false
     @State private var exportDocument = LedgerCSV(text: "")
     @State private var scheduling = false
-    @FocusState private var fieldFocused: Bool
+    @FocusState private var fieldFocused: InputField?
 
     private var reminderTime: Binding<Date> {
         Binding {
@@ -40,17 +40,17 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
+        KeyboardForm(focus: $fieldFocused) {
             Section {
                 Picker("Home meter", selection: $tariffs) {
                     Text("Single counter").tag(false)
                     Text("T1 / T2 counters").tag(true)
                 }
                 if tariffs {
-                    DecimalField(title: "T1 price", unit: "AMD/kWh", text: $t1Rate).focused($fieldFocused)
-                    DecimalField(title: "T2 price", unit: "AMD/kWh", text: $t2Rate).focused($fieldFocused)
+                    DecimalField(title: "T1 price", unit: "AMD/kWh", text: $t1Rate, focus: $fieldFocused, field: .t1Price)
+                    DecimalField(title: "T2 price", unit: "AMD/kWh", text: $t2Rate, focus: $fieldFocused, field: .t2Price)
                 } else {
-                    DecimalField(title: "Price", unit: "AMD/kWh", text: $rate).focused($fieldFocused)
+                    DecimalField(title: "Price", unit: "AMD/kWh", text: $rate, focus: $fieldFocused, field: .homePrice)
                 }
                 Button("Save meter settings", action: savePrices)
             } header: { Text("Home meter and prices") } footer: {
@@ -93,11 +93,6 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer(); Button("Done") { fieldFocused = false }
-            }
-        }
         .task {
             if !loaded {
                 rate = savedRate; t1Rate = savedT1; t2Rate = savedT2; tariffs = savedTariffs; loaded = true
@@ -123,7 +118,7 @@ struct SettingsView: View {
         savedRate = Numbers.string(average); savedT1 = Numbers.string(first); savedT2 = Numbers.string(second)
         savedTariffs = tariffs
         message = "Meter settings saved. Existing records keep their format and prices."
-        fieldFocused = false
+        fieldFocused = nil
     }
 
     private func schedule(requestPermission: Bool) async {

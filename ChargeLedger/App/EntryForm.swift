@@ -65,7 +65,7 @@ private struct ChargingForm: View {
     @State private var earlier: [SessionDraft] = []
     @State private var loaded = false
     @State private var error: String?
-    @FocusState private var focused: Bool
+    @FocusState private var focused: InputField?
 
     private var isOutside: Bool { request.kind == .outside }
     private var isBaseline: Bool { request.kind == .baseline }
@@ -97,16 +97,18 @@ private struct ChargingForm: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            KeyboardForm(focus: $focused) {
                 Section {
                     DatePicker("Date and time", selection: $date, in: ...Date.now, displayedComponents: [.date, .hourAndMinute])
                 }
                 if isOutside || (request.kind == .cycle && existingSession != nil) {
                     Section {
-                        DecimalField(title: "Energy added", unit: "kWh", text: $energy).focused($focused)
-                        DecimalField(title: "Total paid", unit: "AMD", text: $cost).focused($focused)
-                        StationBrandField(brand: $brand, choices: brandChoices)
+                        DecimalField(title: "Energy added", unit: "kWh", text: $energy, focus: $focused, field: .energy)
+                        DecimalField(title: "Total paid", unit: "AMD", text: $cost, focus: $focused, field: .cost)
+                        StationBrandField(brand: $brand, choices: brandChoices, focus: $focused, field: .brand)
                         TextField("Station / location (optional)", text: $location)
+                            .inputFocus(.location, focus: $focused)
+                            .id(InputField.location)
                         if isOutside {
                             Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil)
                         }
@@ -117,7 +119,7 @@ private struct ChargingForm: View {
                 }
                 if closesCycle && !isBaseline {
                     Section {
-                        DecimalField(title: "Trip B", unit: "km", text: $tripB).focused($focused)
+                        DecimalField(title: "Trip B", unit: "km", text: $tripB, focus: $focused, field: .tripB)
                     } header: { Text("Kilometres since the last 100% charge") } footer: {
                         Text("Read Trip B before resetting it in your car.")
                     }
@@ -162,7 +164,6 @@ private struct ChargingForm: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { focused = false } }
             }
             .onAppear(perform: load)
             .onChange(of: date) { _, _ in prefillMeter() }
@@ -176,20 +177,20 @@ private struct ChargingForm: View {
     private var homeMeterSection: some View {
         Section {
             if singleMeter {
-                DecimalField(title: "Meter counter", unit: "kWh", text: $meter,
-                             previous: previousMeter.map { Numbers.string($0.reading.total) }).focused($focused)
+                DecimalField(title: "Meter counter", unit: "kWh", text: $meter, focus: $focused, field: .meter,
+                             previous: previousMeter.map { Numbers.string($0.reading.total) })
             } else {
-                DecimalField(title: "T1 counter", unit: "kWh", text: $t1,
-                             previous: previousMeter?.meterTotalText == nil ? previousMeter?.t1Text : nil).focused($focused)
-                DecimalField(title: "T2 counter", unit: "kWh", text: $t2,
-                             previous: previousMeter?.meterTotalText == nil ? previousMeter?.t2Text : nil).focused($focused)
+                DecimalField(title: "T1 counter", unit: "kWh", text: $t1, focus: $focused, field: .t1,
+                             previous: previousMeter?.meterTotalText == nil ? previousMeter?.t1Text : nil)
+                DecimalField(title: "T2 counter", unit: "kWh", text: $t2, focus: $focused, field: .t2,
+                             previous: previousMeter?.meterTotalText == nil ? previousMeter?.t2Text : nil)
             }
             DisclosureGroup("Price for this record") {
                 if !pricingWithTariffs {
-                    DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate).focused($focused)
+                    DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate, focus: $focused, field: .homePrice)
                 } else {
-                    DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1).focused($focused)
-                    DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2).focused($focused)
+                    DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1, focus: $focused, field: .t1Price)
+                    DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2, focus: $focused, field: .t2Price)
                 }
                 Button("Use default prices") { rate = defaultRate; rateT1 = defaultT1; rateT2 = defaultT2 }
             }
@@ -198,45 +199,60 @@ private struct ChargingForm: View {
         }
     }
 
-    private var earlierSessionsSection: some View {
-        Section {
-            ForEach(loggedSessions) { session in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(session.energyText) kWh · \(session.costText) AMD")
-                    if let brand = session.stationBrand { Text(brand).font(.caption).foregroundStyle(.secondary) }
-                    Text("Already saved · \(session.date.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption).foregroundStyle(.secondary)
+    @ViewBuilder private var earlierSessionsSection: some View {
+        if !loggedSessions.isEmpty {
+            Section {
+                ForEach(loggedSessions) { session in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(session.energyText) kWh · \(session.costText) AMD")
+                        if let brand = session.stationBrand { Text(brand).font(.caption).foregroundStyle(.secondary) }
+                        Text("Already saved · \(session.date.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
-            }
-            if isOutside && existingSession == nil && !loggedSessions.isEmpty {
-                Menu("Use a saved session as this 100% charge") {
-                    ForEach(loggedSessions) { session in
-                        Button("\(session.date.formatted(date: .abbreviated, time: .shortened)) · \(session.energyText) kWh") {
-                            selectedSessionID = session.id; date = session.date
-                            energy = session.energyText; cost = session.costText
-                            brand = session.stationBrand ?? ""; location = session.location
+                if isOutside && existingSession == nil {
+                    Menu("Use a saved session as this 100% charge") {
+                        ForEach(loggedSessions) { session in
+                            Button("\(session.date.formatted(date: .abbreviated, time: .shortened)) · \(session.energyText) kWh") {
+                                selectedSessionID = session.id; date = session.date
+                                energy = session.energyText; cost = session.costText
+                                brand = session.stationBrand ?? ""; location = session.location
+                            }
                         }
                     }
                 }
-            }
-            ForEach($earlier) { $session in
-                VStack(alignment: .leading, spacing: 8) {
-                    DatePicker("Session date", selection: $session.date,
-                               in: min(cycleStart ?? .distantPast, date)...date, displayedComponents: [.date, .hourAndMinute])
-                    DecimalField(title: "Energy added", unit: "kWh", text: $session.energy).focused($focused)
-                    DecimalField(title: "Total paid", unit: "AMD", text: $session.cost).focused($focused)
-                    StationBrandField(brand: $session.brand, choices: brandChoices)
-                    TextField("Station / location (optional)", text: $session.location)
-                    Button("Remove session", role: .destructive) { earlier.removeAll { $0.id == session.id } }
-                        // Prevent Form's automatic button style from making the entire session row tappable.
-                        .buttonStyle(.borderless)
+            } header: { Text("Outside sessions already saved") }
+        }
+        ForEach($earlier) { $session in
+            // Separate Form rows let ScrollViewReader reveal the actual input, even when
+            // this session's full card is taller than the viewport above the keyboard.
+            Section {
+                DatePicker("Session date", selection: $session.date,
+                           in: min(cycleStart ?? .distantPast, date)...date, displayedComponents: [.date, .hourAndMinute])
+                DecimalField(title: "Energy added", unit: "kWh", text: $session.energy,
+                             focus: $focused, field: .sessionEnergy(session.id))
+                DecimalField(title: "Total paid", unit: "AMD", text: $session.cost,
+                             focus: $focused, field: .sessionCost(session.id))
+                StationBrandField(brand: $session.brand, choices: brandChoices,
+                                  focus: $focused, field: .sessionBrand(session.id))
+                TextField("Station / location (optional)", text: $session.location)
+                    .inputFocus(.sessionLocation(session.id), focus: $focused)
+                    .id(InputField.sessionLocation(session.id))
+                Button("Remove session", role: .destructive) {
+                    focused = nil
+                    earlier.removeAll { $0.id == session.id }
                 }
-                .padding(.vertical, 5)
+                .buttonStyle(.borderless)
+            } header: {
+                Text("Outside session \((earlier.firstIndex(where: { $0.id == session.id }) ?? 0) + 1)")
             }
+        }
+        Section {
             Button {
+                focused = nil
                 earlier.append(SessionDraft(date: date))
             } label: { Label("Add outside session", systemImage: "plus") }
-        } header: { Text("Outside sessions in this cycle") } footer: {
+        } footer: {
             Text("Add the final outside charge and any partial outside charges in this cycle. Set each session’s date, kWh and amount paid. Already saved sessions are included automatically. Home partial charges need no entry.")
         }
     }

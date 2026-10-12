@@ -30,11 +30,11 @@ struct MileageForm: View {
     @State private var prefilledValues = ["", "", ""]
     @State private var loaded = false
     @State private var error: String?
-    @FocusState private var focused: Bool
+    @FocusState private var focused: InputField?
 
     var body: some View {
         NavigationStack {
-            Form {
+            KeyboardForm(focus: $focused) {
                 Section {
                     DatePicker("Reading date", selection: $date, in: ...Date.now, displayedComponents: [.date, .hourAndMinute])
                     LabeledContent("Month completed", value: MonthIdentity.label(selectedMonth))
@@ -49,18 +49,18 @@ struct MileageForm: View {
                 if includeMeter {
                     Section {
                         if singleMeter {
-                            DecimalField(title: "Meter counter", unit: "kWh", text: $meter,
-                                         previous: previousMeter.map { Numbers.string($0.reading.total) }).focused($focused)
+                            DecimalField(title: "Meter counter", unit: "kWh", text: $meter, focus: $focused, field: .meter,
+                                         previous: previousMeter.map { Numbers.string($0.reading.total) })
                         } else {
-                            DecimalField(title: "T1 counter", unit: "kWh", text: $t1).focused($focused)
-                            DecimalField(title: "T2 counter", unit: "kWh", text: $t2).focused($focused)
+                            DecimalField(title: "T1 counter", unit: "kWh", text: $t1, focus: $focused, field: .t1)
+                            DecimalField(title: "T2 counter", unit: "kWh", text: $t2, focus: $focused, field: .t2)
                         }
                         DisclosureGroup("Price for this record") {
                             if pricingWithTariffs {
-                                DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1).focused($focused)
-                                DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2).focused($focused)
+                                DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1, focus: $focused, field: .t1Price)
+                                DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2, focus: $focused, field: .t2Price)
                             } else {
-                                DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate).focused($focused)
+                                DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate, focus: $focused, field: .homePrice)
                             }
                         }
                     } header: { Text("Home meter") } footer: {
@@ -68,7 +68,7 @@ struct MileageForm: View {
                     }
                 }
                 Section {
-                    DecimalField(title: "Trip A (optional)", unit: "km", text: $distance).focused($focused)
+                    DecimalField(title: "Trip A (optional)", unit: "km", text: $distance, focus: $focused, field: .tripA)
                 } footer: {
                     Text("Leave blank if you don’t need monthly mileage. If entered, read and reset Trip A in your car. Trip B keeps running.")
                 }
@@ -103,7 +103,6 @@ struct MileageForm: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { focused = false } }
             }
             .onAppear {
                 guard !loaded else { return }; loaded = true

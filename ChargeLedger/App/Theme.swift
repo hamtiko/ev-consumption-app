@@ -74,6 +74,8 @@ struct DecimalField: View {
     let title: String
     let unit: String
     @Binding var text: String
+    let focus: FocusState<InputField?>.Binding
+    let field: InputField
     var previous: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -86,6 +88,7 @@ struct DecimalField: View {
                     .font(.title3.weight(.medium)).monospacedDigit()
                     .frame(minWidth: 80, maxWidth: 170)
                     .accessibilityLabel(title)
+                    .inputFocus(field, focus: focus)
                 Text(unit).font(.caption).foregroundStyle(.secondary)
             }
             if let previous {
@@ -93,5 +96,6 @@ struct DecimalField: View {
             }
         }
         .padding(.vertical, 6)
+        .id(field)
     }
 }

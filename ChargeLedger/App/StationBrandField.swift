@@ -4,23 +4,23 @@ import ChargeLedgerCore
 struct StationBrandField: View {
     @Binding var brand: String
     let choices: [String]
+    let focus: FocusState<InputField?>.Binding
+    let field: InputField
     @State private var choosing = false
-    @FocusState private var typing: Bool
 
     var body: some View {
         HStack {
             TextField("Charging brand (optional)", text: $brand)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
-                .focused($typing)
-                .submitLabel(.done)
-                .onSubmit { typing = false }
+                .inputFocus(field, focus: focus)
                 .accessibilityLabel("Charging station brand")
-            Button { choosing = true } label: {
+            Button { focus.wrappedValue = nil; choosing = true } label: {
                 Label("Choose", systemImage: "chevron.down").font(.subheadline)
             }
             .buttonStyle(.borderless)
         }
+        .id(field)
         .sheet(isPresented: $choosing) {
             StationBrandPicker(brand: $brand, choices: StationBrands.choices(choices.map { Optional($0) }))
         }
@@ -32,11 +32,19 @@ private struct StationBrandPicker: View {
     let choices: [String]
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
+    @FocusState private var focused: InputField?
     private var matches: [String] { choices.filter { search.isEmpty || $0.localizedCaseInsensitiveContains(search) } }
 
     var body: some View {
         NavigationStack {
-            List {
+            KeyboardForm(focus: $focused) {
+                Section {
+                    TextField("Find or add a brand", text: $search)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .inputFocus(.brandSearch, focus: $focused)
+                        .id(InputField.brandSearch)
+                }
                 Button("Unspecified") { choose("") }
                 Section("Saved brands") {
                     ForEach(matches, id: \.self) { name in
@@ -57,12 +65,11 @@ private struct StationBrandPicker: View {
                     }
                 }
             }
-            .searchable(text: $search, prompt: "Find or add a brand")
             .navigationTitle("Charging brand")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
     }
 
-    private func choose(_ name: String) { brand = name; dismiss() }
+    private func choose(_ name: String) { focused = nil; brand = name; dismiss() }
 }

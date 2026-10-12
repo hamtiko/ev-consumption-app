@@ -18,14 +18,14 @@ struct HomeDataForm: View {
     @State private var rateT2 = ""
     @State private var loaded = false
     @State private var error: String?
-    @FocusState private var focused: Bool
+    @FocusState private var focused: InputField?
     private var previous: Checkpoint? {
         checkpoints.last { $0.id != checkpoint.id && $0.date < checkpoint.date && $0.hasMeterReading }
     }
 
     var body: some View {
         NavigationStack {
-            Form {
+            KeyboardForm(focus: $focused) {
                 Section {
                     Text("100% charge on \(checkpoint.date.formatted(date: .abbreviated, time: .shortened))")
                     if !checkpoint.hasMeterReading {
@@ -36,18 +36,18 @@ struct HomeDataForm: View {
                 }
                 Section {
                     if single {
-                        DecimalField(title: "Meter counter", unit: "kWh", text: $total,
-                                     previous: previous.map { Numbers.string($0.reading.total) }).focused($focused)
+                        DecimalField(title: "Meter counter", unit: "kWh", text: $total, focus: $focused, field: .meter,
+                                     previous: previous.map { Numbers.string($0.reading.total) })
                     } else {
-                        DecimalField(title: "T1 counter", unit: "kWh", text: $t1).focused($focused)
-                        DecimalField(title: "T2 counter", unit: "kWh", text: $t2).focused($focused)
+                        DecimalField(title: "T1 counter", unit: "kWh", text: $t1, focus: $focused, field: .t1)
+                        DecimalField(title: "T2 counter", unit: "kWh", text: $t2, focus: $focused, field: .t2)
                     }
                     DisclosureGroup("Price for this record") {
                         if !pricingWithTariffs {
-                            DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate).focused($focused)
+                            DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate, focus: $focused, field: .homePrice)
                         } else {
-                            DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1).focused($focused)
-                            DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2).focused($focused)
+                            DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1, focus: $focused, field: .t1Price)
+                            DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2, focus: $focused, field: .t2Price)
                         }
                     }
                     Button("Save home data") { save(carryForward: false) }
@@ -71,7 +71,6 @@ struct HomeDataForm: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { focused = false } }
             }
             .onAppear {
                 guard !loaded else { return }; loaded = true
