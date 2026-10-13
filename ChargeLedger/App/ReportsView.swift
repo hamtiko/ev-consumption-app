@@ -125,6 +125,8 @@ struct ReportsView: View {
                     }
                 }
             }
+            MonthlyRatioChart(months: months, metric: .consumption)
+            MonthlyRatioChart(months: months, metric: .cost)
             ReportCard(title: "Home charging energy · kWh", note: "Two consecutive monthly meter readings are required. Late readings cover their actual dates, shown in the details.") {
                 Chart(known) { summary in
                     BarMark(x: .value("Month", summary.month!), y: .value("kWh", Numbers.double(summary.homeEnergy)))

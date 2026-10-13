@@ -94,6 +94,43 @@ struct CycleTrendChart: View {
     }
 }
 
+struct MonthlyRatioChart: View {
+    let months: [PeriodSummary]
+    let metric: CycleMetric
+    private var measured: [PeriodSummary] { months.filter { metric.value($0) != nil } }
+    private var title: String {
+        metric == .consumption ? "Monthly average consumption" : "Monthly average cost per kilometre"
+    }
+    private var note: String {
+        let formula = metric == .consumption
+            ? "(Home + outside energy) ÷ Trip A kilometres × 100."
+            : "(Estimated home cost + outside payments) ÷ Trip A kilometres."
+        return formula + " Requires complete energy and positive Trip A mileage. Late readings cover their actual dates."
+    }
+
+    var body: some View {
+        ReportCard(title: "\(title) · \(metric.unit)", note: note) {
+            if measured.isEmpty {
+                Text("Record Trip A kilometres and consecutive monthly meter readings to see an average for each month.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            } else {
+                Chart(measured) { summary in
+                    if let month = summary.month, let value = metric.value(summary) {
+                        BarMark(x: .value("Month", month, unit: .month),
+                                y: .value(metric.unit, Numbers.double(value)))
+                            .foregroundStyle(LedgerStyle.accent)
+                            .annotation(position: .top) {
+                                Text(LedgerStyle.number(value, digits: 2)).font(.caption).monospacedDigit()
+                            }
+                    }
+                }
+                .chartYScale(domain: .automatic(includesZero: true))
+                .frame(height: 200)
+            }
+        }
+    }
+}
+
 struct ChargingSourceChart: View {
     let statistics: CycleStatistics
     private struct Source: Identifiable {
