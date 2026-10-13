@@ -95,14 +95,7 @@ struct MileageForm: View {
                          : "Using the selected month. Change it only when recording an older month.")
                 }
                 Section {
-                    Button {
-                        focused = nil
-                        save()
-                    } label: {
-                        Text("Save").font(.headline).frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    FormSaveButton(action: save)
                 }
             }
             .navigationTitle("Monthly readings")

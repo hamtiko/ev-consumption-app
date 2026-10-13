@@ -156,8 +156,7 @@ private struct ChargingForm: View {
                     }
                 }
                 Section {
-                    Button(editing ? "Save changes" : "Save entry", action: save)
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 5)
+                    FormSaveButton(action: save)
                 }
             }
             .navigationTitle(editing ? "Edit entry" : request.kind.title)

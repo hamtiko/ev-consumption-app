@@ -70,6 +70,24 @@ struct SummaryCard: View {
     }
 }
 
+struct FormSaveButton: View {
+    let action: () -> Void
+    @Environment(\.dismissFormKeyboard) private var dismissKeyboard
+
+    var body: some View {
+        Button {
+            dismissKeyboard()
+            action()
+        } label: {
+            Text("Save").font(.headline).frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+}
+
 struct FormDisclosure<Content: View>: View {
     let title: String
     let content: () -> Content
