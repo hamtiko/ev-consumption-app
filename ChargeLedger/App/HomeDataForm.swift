@@ -42,7 +42,7 @@ struct HomeDataForm: View {
                         DecimalField(title: "T1 counter", unit: "kWh", text: $t1, focus: $focused, field: .t1)
                         DecimalField(title: "T2 counter", unit: "kWh", text: $t2, focus: $focused, field: .t2)
                     }
-                    DisclosureGroup("Price for this record") {
+                    FormDisclosure("Price for this record") {
                         if !pricingWithTariffs {
                             DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate, focus: $focused, field: .homePrice)
                         } else {

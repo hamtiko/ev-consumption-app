@@ -10,7 +10,7 @@ A local-first EV charging journal built with SwiftUI, SwiftData, Swift Charts, a
 
 The checked-in project is ready to open. `python3 Tools/create_project.py` regenerates it after adding/removing Swift files.
 
-Entry, monthly, home-data, settings and brand-search forms share SwiftUI keyboard handling. Each input has its own focus identity. The active row scrolls toward the center with extra room above the keyboard toolbar; both Return/Done and the toolbar Done button dismiss the keyboard. Tapping a label, unit or background outside the text inputs also dismisses it, while tapping another input transfers focus. Outside sessions use separate form rows so a long session card cannot hide its active field.
+Entry, monthly, home-data, settings and brand-search forms share keyboard handling. Each input has its own focus identity. The active row scrolls toward the center with extra room above the keyboard toolbar; both Return/Done and the toolbar Done button dismiss the keyboard. A small non-cancelling UIKit tap observer dismisses the keyboard outside text inputs and lets the tapped control finish its action first; it ignores text-input touches and detaches when its form is removed. The screens and controls remain SwiftUI. Outside sessions use separate form rows so a long session card cannot hide its active field. Disclosure headers expand across their title/chevron row, and the monthly action is labelled **Save** for both new and edited records.
 
 ## Entry flows
 

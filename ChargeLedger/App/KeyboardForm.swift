@@ -1,14 +1,19 @@
 import SwiftUI
+import UIKit
 
 enum InputField: Hashable {
     case meter, t1, t2, tripA, tripB, energy, cost, brand, location, homePrice, t1Price, t2Price, brandSearch
     case sessionEnergy(UUID), sessionCost(UUID), sessionBrand(UUID), sessionLocation(UUID)
 }
 
-private struct InputBounds: PreferenceKey {
-    static var defaultValue: [InputField: CGRect] { [:] }
-    static func reduce(value: inout [InputField: CGRect], nextValue: () -> [InputField: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { _, next in next })
+private struct DismissFormKeyboardKey: EnvironmentKey {
+    static var defaultValue: () -> Void { {} }
+}
+
+extension EnvironmentValues {
+    var dismissFormKeyboard: () -> Void {
+        get { self[DismissFormKeyboardKey.self] }
+        set { self[DismissFormKeyboardKey.self] = newValue }
     }
 }
 
@@ -19,11 +24,6 @@ private struct InputFocus: ViewModifier {
         content
             .focused(focus, equals: id)
             .submitLabel(.done)
-            .background {
-                GeometryReader { geometry in
-                    Color.clear.preference(key: InputBounds.self, value: [id: geometry.frame(in: .global)])
-                }
-            }
     }
 }
 
@@ -37,7 +37,6 @@ extension View {
 struct KeyboardForm<Content: View>: View {
     let focus: FocusState<InputField?>.Binding
     let content: () -> Content
-    @State private var bounds: [InputField: CGRect] = [:]
 
     init(focus: FocusState<InputField?>.Binding, @ViewBuilder content: @escaping () -> Content) {
         self.focus = focus; self.content = content
@@ -47,15 +46,13 @@ struct KeyboardForm<Content: View>: View {
         ScrollViewReader { scroll in
             GeometryReader { viewport in
                 Form { content() }
-                    .contentShape(Rectangle())
+                    .environment(\.dismissFormKeyboard, { focus.wrappedValue = nil })
                     // Extra scrollable room keeps the final input above the keyboard's Done bar.
                     .contentMargins(.bottom, focus.wrappedValue == nil ? 0 : 64, for: .scrollContent)
                     .scrollDismissesKeyboard(.interactively)
-                    .onPreferenceChange(InputBounds.self) { bounds = $0 }
-                    .simultaneousGesture(SpatialTapGesture(coordinateSpace: .global).onEnded { tap in
-                        // Tapping another field must transfer focus, not immediately dismiss it.
-                        if !bounds.values.contains(where: { $0.contains(tap.location) }) { focus.wrappedValue = nil }
-                    })
+                    .background {
+                        OutsideInputTapObserver(isActive: { focus.wrappedValue != nil }) { focus.wrappedValue = nil }
+                    }
                     .onSubmit { focus.wrappedValue = nil }
                     .toolbar {
                         if focus.wrappedValue != nil {
@@ -86,5 +83,78 @@ struct KeyboardForm<Content: View>: View {
 
     private func reveal(_ field: InputField, using scroll: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.2)) { scroll.scrollTo(field, anchor: .center) }
+    }
+}
+
+/// Observe outside taps without putting a SwiftUI gesture on the Form's controls.
+/// This small UIKit bridge never cancels or delays the touches delivered to buttons,
+/// disclosure rows, pickers, or text inputs; the form and its content remain SwiftUI.
+@MainActor
+private struct OutsideInputTapObserver: UIViewRepresentable {
+    let isActive: () -> Bool
+    let onTap: () -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(isActive: isActive, onTap: onTap) }
+    func makeUIView(context: Context) -> Probe {
+        let view = Probe(frame: .zero)
+        view.isUserInteractionEnabled = false
+        view.onWindowChange = { [weak coordinator = context.coordinator] window in coordinator?.attach(to: window) }
+        return view
+    }
+    func updateUIView(_ view: Probe, context: Context) {
+        context.coordinator.isActive = isActive
+        context.coordinator.onTap = onTap
+    }
+    static func dismantleUIView(_ view: Probe, coordinator: Coordinator) {
+        view.onWindowChange = nil
+        coordinator.attach(to: nil)
+    }
+
+    final class Probe: UIView {
+        var onWindowChange: ((UIWindow?) -> Void)?
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onWindowChange?(window)
+        }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var isActive: () -> Bool
+        var onTap: () -> Void
+        private weak var window: UIWindow?
+        private var recognizer: UITapGestureRecognizer!
+        init(isActive: @escaping () -> Bool, onTap: @escaping () -> Void) {
+            self.isActive = isActive; self.onTap = onTap
+            super.init()
+            recognizer = UITapGestureRecognizer(target: self, action: #selector(tapped))
+            recognizer.cancelsTouchesInView = false
+            recognizer.delaysTouchesBegan = false
+            recognizer.delaysTouchesEnded = false
+            recognizer.delegate = self
+        }
+        func attach(to next: UIWindow?) {
+            guard window !== next else { return }
+            window?.removeGestureRecognizer(recognizer)
+            window = next
+            next?.addGestureRecognizer(recognizer)
+        }
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            guard isActive() else { return false }
+            var view = touch.view
+            while let current = view {
+                if current is UITextInput { return false }
+                view = current.superview
+            }
+            return true
+        }
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+        @objc private func tapped() {
+            // Let the tapped control finish its action before keyboard layout changes.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.isActive() else { return }
+                self.onTap()
+            }
+        }
     }
 }

@@ -70,6 +70,39 @@ struct SummaryCard: View {
     }
 }
 
+struct FormDisclosure<Content: View>: View {
+    let title: String
+    let content: () -> Content
+    @State private var expanded = false
+    @Environment(\.dismissFormKeyboard) private var dismissKeyboard
+
+    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title; self.content = content
+    }
+
+    var body: some View {
+        Group {
+            Button {
+                dismissKeyboard()
+                withAnimation { expanded.toggle() }
+            } label: {
+                HStack {
+                    Text(title).foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(expanded ? 90 : 0))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(expanded ? "Expanded" : "Collapsed")
+            if expanded { content() }
+        }
+    }
+}
+
 struct DecimalField: View {
     let title: String
     let unit: String

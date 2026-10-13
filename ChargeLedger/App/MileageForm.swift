@@ -55,7 +55,7 @@ struct MileageForm: View {
                             DecimalField(title: "T1 counter", unit: "kWh", text: $t1, focus: $focused, field: .t1)
                             DecimalField(title: "T2 counter", unit: "kWh", text: $t2, focus: $focused, field: .t2)
                         }
-                        DisclosureGroup("Price for this record") {
+                        FormDisclosure("Price for this record") {
                             if pricingWithTariffs {
                                 DecimalField(title: "T1 price", unit: "AMD/kWh", text: $rateT1, focus: $focused, field: .t1Price)
                                 DecimalField(title: "T2 price", unit: "AMD/kWh", text: $rateT2, focus: $focused, field: .t2Price)
@@ -73,7 +73,7 @@ struct MileageForm: View {
                     Text("Leave blank if you don’t need monthly mileage. If entered, read and reset Trip A in your car. Trip B keeps running.")
                 }
                 Section {
-                    DisclosureGroup("Change completed month") {
+                    FormDisclosure("Change completed month") {
                         Toggle("Use previous month automatically", isOn: Binding(
                             get: { useAutomaticMonth }, set: { automatic in
                                 if !automatic { month = MonthIdentity.previous(to: date) }
@@ -95,8 +95,14 @@ struct MileageForm: View {
                          : "Using the selected month. Change it only when recording an older month.")
                 }
                 Section {
-                    Button(request.mileage == nil ? "Save monthly readings" : "Save changes", action: save)
-                        .font(.headline).frame(maxWidth: .infinity)
+                    Button {
+                        focused = nil
+                        save()
+                    } label: {
+                        Text("Save").font(.headline).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
             }
             .navigationTitle("Monthly readings")

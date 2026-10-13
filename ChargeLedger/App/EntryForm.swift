@@ -185,7 +185,7 @@ private struct ChargingForm: View {
                 DecimalField(title: "T2 counter", unit: "kWh", text: $t2, focus: $focused, field: .t2,
                              previous: previousMeter?.meterTotalText == nil ? previousMeter?.t2Text : nil)
             }
-            DisclosureGroup("Price for this record") {
+            FormDisclosure("Price for this record") {
                 if !pricingWithTariffs {
                     DecimalField(title: "Home price", unit: "AMD/kWh", text: $rate, focus: $focused, field: .homePrice)
                 } else {
