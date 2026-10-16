@@ -34,9 +34,12 @@ private struct ChargingForm: View {
     let onSaved: (String?) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
-    @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
-    @Query private var monthlyRecords: [MonthlyMileage]
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
+    @Query(sort: \OutsideCharge.date) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query private var storedMonthlyRecords: [MonthlyMileage]
+    private var monthlyRecords: [MonthlyMileage] { SyncRecords.unique(storedMonthlyRecords) }
     @AppStorage("averageRate") private var defaultRate = "47.5"
     @AppStorage("t1Rate") private var defaultT1 = "53.48"
     @AppStorage("t2Rate") private var defaultT2 = "43.48"
@@ -374,7 +377,7 @@ private struct ChargingForm: View {
                 if outsideCharge != nil { saved.linkedChargeID = outsideCharge?.id }
                 if let monthly = monthlyRecords.first(where: { $0.id == candidate.id }) { monthly.date = candidate.date }
             }
-            try context.save()
+            try JournalStore.save(context)
             onSaved(request.checkpoint == nil && closesCycle ? "Now reset Trip B in your car. Trip A keeps running." : nil)
             dismiss()
         } catch {

@@ -1,12 +1,12 @@
 # Charge Ledger
 
-A local-first EV charging journal built with SwiftUI, SwiftData, Swift Charts, and UserNotifications. Requires iOS 17+ and Xcode 16+. There are no third-party app dependencies, accounts, servers, or photo workflows.
+A local-first EV charging journal built with SwiftUI, SwiftData, Swift Charts, UserNotifications, and private CloudKit sync. Requires iOS 17+ and Xcode 16+. There are no third-party app dependencies, custom accounts/servers, or photo workflows. iCloud sync uses the device's Apple account.
 
 ## Open and run
 
 1. Open `ChargeLedger/ChargeLedger.xcodeproj` on a Mac.
 2. Select **ChargeLedger** and an iPhone simulator, then press **⌘R**.
-3. For your iPhone, select a development team in **Signing & Capabilities**, update the sample bundle identifier if needed, and select your device.
+3. For your iPhone, select a development team in **Signing & Capabilities** and configure its CloudKit container as described in [ICLOUD_SETUP.md](ICLOUD_SETUP.md). Keep the installed app's bundle identifier when upgrading existing data. The guide also describes local-only simulator configuration.
 
 The checked-in project is ready to open. `python3 Tools/create_project.py` regenerates it after adding/removing Swift files.
 
@@ -75,7 +75,7 @@ Backdated meter edits are validated against preceding and following known readin
 
 Enable **Settings → Monthly reminder**, allow notifications, and choose a local time (default 09:00). A repeating local notification on day 1 reminds you to enter the home meter and optional Trip A. Tapping opens **Monthly readings**, including a cold app launch. No Trip B or battery information is requested. Rescheduling replaces one stable notification; disabling removes it. iOS settings and Focus modes govern presentation.
 
-## Existing data and export
+## Existing data, sync and backups
 
 SwiftData stores records on-device. The update adds optional/defaulted checkpoint fields and a separate monthly-mileage entity. At launch, old monthly Trip A values are copied once into monthly records while the original meter readings are kept for historical calculations. The conversion is idempotent; deleted converted mileage is not recreated.
 
@@ -85,7 +85,11 @@ The brand-report update adds an optional, nil-defaulted brand field to outside s
 
 CSV export includes raw counters, whether a home reading exists, single/tariff prices, Trip A/B, monthly-mileage records, outside sessions, pending/entered/unchanged home status, and home-data timestamps. The station_brand column is appended after existing columns, preserving older column positions. Old optional partial-session Trip B readings remain preserved in exports, though the new partial-charge form no longer asks for them.
 
-This version does not import Excel/CSV, sync across devices, or restore exports automatically. Keep exports for independent copies and spreadsheet analysis.
+The journal now syncs automatically through private iCloud/CloudKit, with status and transfer/error information in Settings. Recording works offline. The schema migration preserves the default store location and logical IDs, and saves a pre-upgrade JSON safety copy before changing the last local-only schema. Local uniqueness constraints are replaced with logical-ID reconciliation suitable for CloudKit. Native migration and live sync require device validation.
+
+**Settings → Export backup / Import backup** provides a restorable JSON copy through Files, including iCloud Drive and OneDrive. Import previews changes, merges missing entries and newer edits, preserves unrelated records, and saves a pre-import safety copy. It preserves raw precision, paired monthly IDs, pending home data, prices, brands and locations. Meter defaults can optionally be restored; reminders remain device-specific. CSV is still for spreadsheet analysis and cannot be restored. Excel/CSV import is not supported.
+
+See [ICLOUD_SETUP.md](ICLOUD_SETUP.md) for Apple signing/container setup, production schema deployment, migration details, backup behavior and OneDrive instructions. Sync carries deletions, so export independent backup copies.
 
 ## Verification
 

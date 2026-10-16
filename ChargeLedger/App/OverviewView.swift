@@ -4,9 +4,12 @@ import ChargeLedgerCore
 
 struct OverviewView: View {
     let add: (EntryRequest) -> Void
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
-    @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
-    @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
+    @Query(sort: \OutsideCharge.date) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query(sort: \MonthlyMileage.month) private var storedMileage: [MonthlyMileage]
+    private var mileage: [MonthlyMileage] { SyncRecords.unique(storedMileage) }
     private var readings: [Reading] { checkpoints.map(\.reading) }
     private var external: [Charge] { charges.map(\.charge) }
     private var pending: [Checkpoint] { Array(checkpoints.filter { $0.closesCycle && !$0.hasMeterReading }.reversed()) }

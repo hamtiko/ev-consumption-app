@@ -21,9 +21,12 @@ private enum JournalItem: Identifiable {
 struct JournalView: View {
     let edit: (EntryRequest) -> Void
     @Environment(\.modelContext) private var context
-    @Query(sort: \Checkpoint.date, order: .reverse) private var checkpoints: [Checkpoint]
-    @Query(sort: \OutsideCharge.date, order: .reverse) private var charges: [OutsideCharge]
-    @Query(sort: \MonthlyMileage.date, order: .reverse) private var mileage: [MonthlyMileage]
+    @Query(sort: \Checkpoint.date, order: .reverse) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
+    @Query(sort: \OutsideCharge.date, order: .reverse) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query(sort: \MonthlyMileage.date, order: .reverse) private var storedMileage: [MonthlyMileage]
+    private var mileage: [MonthlyMileage] { SyncRecords.unique(storedMileage) }
     @State private var pendingDelete: JournalItem?
     @State private var error: String?
     private var items: [JournalItem] {
@@ -145,18 +148,18 @@ struct JournalView: View {
         guard let item = pendingDelete else { return }
         do {
             switch item {
-            case .checkpoint(let checkpoint): context.delete(checkpoint)
+            case .checkpoint(let checkpoint): try JournalStore.delete(checkpoint, in: context)
             case .charge(let charge):
                 for checkpoint in checkpoints where checkpoint.linkedChargeID == charge.id { checkpoint.linkedChargeID = nil }
-                context.delete(charge)
+                try JournalStore.delete(charge, in: context)
             case .mileage(let record):
                 if let meter = checkpoints.first(where: { $0.id == record.id }) {
                     if meter.closesCycle || meter.isBaseline { meter.tripAText = nil; meter.monthBoundary = nil }
-                    else { context.delete(meter) }
+                    else { try JournalStore.delete(meter, in: context) }
                 }
-                context.delete(record)
+                try JournalStore.delete(record, in: context)
             }
-            try context.save(); pendingDelete = nil
+            try JournalStore.save(context); pendingDelete = nil
         } catch {
             context.rollback(); self.error = error.localizedDescription; pendingDelete = nil
         }

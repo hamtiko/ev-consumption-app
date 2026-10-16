@@ -33,6 +33,8 @@ for path in sorted((root / 'App').glob('*.swift')):
     app_build.append(add('build:' + path.name, 'PBXBuildFile', fileRef=ref))
 assets = add('assets', 'PBXFileReference', lastKnownFileType='folder.assetcatalog', path='Assets.xcassets', sourceTree='<group>')
 app_refs.append(assets)
+for name, kind in [('Info.plist', 'text.plist.xml'), ('ChargeLedger.entitlements', 'text.plist.entitlements')]:
+    app_refs.append(add('file:' + name, 'PBXFileReference', lastKnownFileType=kind, path=name, sourceTree='<group>'))
 asset_build = add('assets-build', 'PBXBuildFile', fileRef=assets)
 app_group = add('app-group', 'PBXGroup', children=app_refs, path='App', sourceTree='<group>')
 test_refs, test_build = [], []
@@ -78,6 +80,8 @@ project_configs = configurations('project', {
 app_configs = configurations('app', {
     'PRODUCT_BUNDLE_IDENTIFIER': 'com.example.ChargeLedger', 'PRODUCT_NAME': '$(TARGET_NAME)',
     'GENERATE_INFOPLIST_FILE': 'YES', 'INFOPLIST_KEY_CFBundleDisplayName': 'Charge Ledger',
+    'INFOPLIST_FILE': 'App/Info.plist', 'CODE_SIGN_ENTITLEMENTS': 'App/ChargeLedger.entitlements',
+    'CHARGE_LEDGER_ICLOUD_CONTAINER': 'iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)',
     'INFOPLIST_KEY_UILaunchScreen_Generation': 'YES',
     'INFOPLIST_KEY_UIApplicationSceneManifest_Generation': 'YES',
     'INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone': 'UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight',
@@ -97,7 +101,7 @@ app_target = add('app-target', 'PBXNativeTarget', buildConfigurationList=app_con
 proxy = add('app-proxy', 'PBXContainerItemProxy', containerPortal=ident('project'), proxyType=1, remoteGlobalIDString=app_target, remoteInfo='ChargeLedger')
 dep = add('app-dependency', 'PBXTargetDependency', target=app_target, targetProxy=proxy)
 test_target = add('test-target', 'PBXNativeTarget', buildConfigurationList=test_configs, buildPhases=[test_sources, test_frameworks, empty_resources], buildRules=[], dependencies=[dep], name='ChargeLedgerTests', packageProductDependencies=[core_product], productName='ChargeLedgerTests', productReference=test_product, productType='com.apple.product-type.bundle.unit-test')
-project = add('project', 'PBXProject', attributes={'BuildIndependentTargetsInParallel': 'YES', 'LastUpgradeCheck': '1600', 'TargetAttributes': {app_target: {'CreatedOnToolsVersion': '16.0'}, test_target: {'CreatedOnToolsVersion': '16.0', 'TestTargetID': app_target}}}, buildConfigurationList=project_configs, compatibilityVersion='Xcode 14.0', developmentRegion='en', hasScannedForEncodings=0, knownRegions=['en', 'Base'], mainGroup=main, packageReferences=[package], productRefGroup=products, projectDirPath='', projectRoot='', targets=[app_target, test_target])
+project = add('project', 'PBXProject', attributes={'BuildIndependentTargetsInParallel': 'YES', 'LastUpgradeCheck': '1600', 'TargetAttributes': {app_target: {'CreatedOnToolsVersion': '16.0', 'SystemCapabilities': {'com.apple.iCloud': {'enabled': 1}, 'com.apple.Push': {'enabled': 1}, 'com.apple.BackgroundModes': {'enabled': 1}}}, test_target: {'CreatedOnToolsVersion': '16.0', 'TestTargetID': app_target}}}, buildConfigurationList=project_configs, compatibilityVersion='Xcode 14.0', developmentRegion='en', hasScannedForEncodings=0, knownRegions=['en', 'Base'], mainGroup=main, packageReferences=[package], productRefGroup=products, projectDirPath='', projectRoot='', targets=[app_target, test_target])
 project_path = root / 'ChargeLedger.xcodeproj'
 project_path.mkdir(exist_ok=True)
 (project_path / 'project.pbxproj').write_text('// !$*UTF8*$!\n' + render({'archiveVersion': 1, 'classes': {}, 'objectVersion': 56, 'objects': objects, 'rootObject': project}) + '\n')

@@ -5,6 +5,26 @@
 	};
 	objectVersion = 56;
 	objects = {
+		B8FA62C3D1E5D1E0CAC1989B = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "BackupRecords.swift";
+			sourceTree = "<group>";
+		};
+		747968A7FD765B6A29D662BB = {
+			isa = "PBXBuildFile";
+			fileRef = "B8FA62C3D1E5D1E0CAC1989B";
+		};
+		180AF0EA040BFD8CE19D0C11 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "BackupStore.swift";
+			sourceTree = "<group>";
+		};
+		BF287A98F2578C1A41548AA0 = {
+			isa = "PBXBuildFile";
+			fileRef = "180AF0EA040BFD8CE19D0C11";
+		};
 		C62C71BF1783C48D413307B3 = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "sourcecode.swift";
@@ -14,6 +34,16 @@
 		1F2F48CC99FD1A8510A890B5 = {
 			isa = "PBXBuildFile";
 			fileRef = "C62C71BF1783C48D413307B3";
+		};
+		B2D3F77DDEB0B5817BD10D75 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "CloudSyncService.swift";
+			sourceTree = "<group>";
+		};
+		1575EF101CB6309545BDCA3E = {
+			isa = "PBXBuildFile";
+			fileRef = "B2D3F77DDEB0B5817BD10D75";
 		};
 		22BD46BB2BC9C1CB2A2863AD = {
 			isa = "PBXFileReference";
@@ -35,6 +65,16 @@
 			isa = "PBXBuildFile";
 			fileRef = "A8DB1D7FEE0EACB41AC46E41";
 		};
+		3D7F62115A78ACB8949F69FE = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "JournalStore.swift";
+			sourceTree = "<group>";
+		};
+		119760AEAE6C19D9961FF1D2 = {
+			isa = "PBXBuildFile";
+			fileRef = "3D7F62115A78ACB8949F69FE";
+		};
 		51F81C4C370B94ECE2A21CBC = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "sourcecode.swift";
@@ -54,6 +94,16 @@
 		8398A26501E13D9A13918060 = {
 			isa = "PBXBuildFile";
 			fileRef = "7A6B8721CBEA08DBC6BA4499";
+		};
+		405EA75FDB9F6AEB08DF4CDF = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "LegacyJournalSchema.swift";
+			sourceTree = "<group>";
+		};
+		0AAA3BF7EC74336EE501E687 = {
+			isa = "PBXBuildFile";
+			fileRef = "405EA75FDB9F6AEB08DF4CDF";
 		};
 		FDE7F88A386B1FFA7212605E = {
 			isa = "PBXFileReference";
@@ -161,6 +211,18 @@
 			path = "Assets.xcassets";
 			sourceTree = "<group>";
 		};
+		8873151C067A966D8A2B0623 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "text.plist.xml";
+			path = "Info.plist";
+			sourceTree = "<group>";
+		};
+		B116A34B1D96DB165026BBD4 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "text.plist.entitlements";
+			path = "ChargeLedger.entitlements";
+			sourceTree = "<group>";
+		};
 		5522B3B3B2EACC1C8F9BEAAC = {
 			isa = "PBXBuildFile";
 			fileRef = "8BF729FFE074CAEE622C0292";
@@ -168,11 +230,16 @@
 		FC233BDA2344D97687F5A251 = {
 			isa = "PBXGroup";
 			children = (
+				"B8FA62C3D1E5D1E0CAC1989B",
+				"180AF0EA040BFD8CE19D0C11",
 				"C62C71BF1783C48D413307B3",
+				"B2D3F77DDEB0B5817BD10D75",
 				"22BD46BB2BC9C1CB2A2863AD",
 				"A8DB1D7FEE0EACB41AC46E41",
+				"3D7F62115A78ACB8949F69FE",
 				"51F81C4C370B94ECE2A21CBC",
 				"7A6B8721CBEA08DBC6BA4499",
+				"405EA75FDB9F6AEB08DF4CDF",
 				"FDE7F88A386B1FFA7212605E",
 				"C564D8E6C880B7838D5AF748",
 				"B94A9EFD3E53E5D7FED4FE3C",
@@ -184,6 +251,8 @@
 				"C6CB267909CE4CAA294B787D",
 				"1711E5981A8436B2ADB545A3",
 				"8BF729FFE074CAEE622C0292",
+				"8873151C067A966D8A2B0623",
+				"B116A34B1D96DB165026BBD4",
 			);
 			path = "App";
 			sourceTree = "<group>";
@@ -197,6 +266,26 @@
 		C18085A17A2B41A4DD477E2A = {
 			isa = "PBXBuildFile";
 			fileRef = "4CC88557ECD433986EC3186C";
+		};
+		24F6FD9D58FDF89223E8CFA6 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "ChargeLedgerTests/StorageTests.swift";
+			sourceTree = "SOURCE_ROOT";
+		};
+		5D5B9A80DA6C341A08484DB5 = {
+			isa = "PBXBuildFile";
+			fileRef = "24F6FD9D58FDF89223E8CFA6";
+		};
+		5DED2FBFB3079BCD78C1443F = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Core/Tests/ChargeLedgerCoreTests/JournalBackupTests.swift";
+			sourceTree = "SOURCE_ROOT";
+		};
+		2F59F75E43CEC2155CEC0439 = {
+			isa = "PBXBuildFile";
+			fileRef = "5DED2FBFB3079BCD78C1443F";
 		};
 		21606B234947BB4DB2C9E1D5 = {
 			isa = "PBXFileReference";
@@ -222,6 +311,8 @@
 			isa = "PBXGroup";
 			children = (
 				"4CC88557ECD433986EC3186C",
+				"24F6FD9D58FDF89223E8CFA6",
+				"5DED2FBFB3079BCD78C1443F",
 				"21606B234947BB4DB2C9E1D5",
 				"B70762D45B9B237063141D3A",
 			);
@@ -288,11 +379,16 @@
 			isa = "PBXSourcesBuildPhase";
 			buildActionMask = 2147483647;
 			files = (
+				"747968A7FD765B6A29D662BB",
+				"BF287A98F2578C1A41548AA0",
 				"1F2F48CC99FD1A8510A890B5",
+				"1575EF101CB6309545BDCA3E",
 				"471CCBCD216FCA13E1D3B85A",
 				"601ED318F83E997A11963558",
+				"119760AEAE6C19D9961FF1D2",
 				"07AF8B771B9D964E59BF3D02",
 				"8398A26501E13D9A13918060",
+				"0AAA3BF7EC74336EE501E687",
 				"20E363A2889181E5F98B36FC",
 				"FD825685184AF3166D56C1B1",
 				"274CA7620EE3C93FB2954837",
@@ -311,6 +407,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				"C18085A17A2B41A4DD477E2A",
+				"5D5B9A80DA6C341A08484DB5",
+				"2F59F75E43CEC2155CEC0439",
 				"377AC052A904A3BE223B8D46",
 				"46DE00645BCC0C1AF20409DE",
 			);
@@ -402,6 +500,9 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				GENERATE_INFOPLIST_FILE = "YES";
 				INFOPLIST_KEY_CFBundleDisplayName = "Charge Ledger";
+				INFOPLIST_FILE = "App/Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "App/ChargeLedger.entitlements";
+				CHARGE_LEDGER_ICLOUD_CONTAINER = "iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)";
 				INFOPLIST_KEY_UILaunchScreen_Generation = "YES";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = "YES";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -423,6 +524,9 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				GENERATE_INFOPLIST_FILE = "YES";
 				INFOPLIST_KEY_CFBundleDisplayName = "Charge Ledger";
+				INFOPLIST_FILE = "App/Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "App/ChargeLedger.entitlements";
+				CHARGE_LEDGER_ICLOUD_CONTAINER = "iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)";
 				INFOPLIST_KEY_UILaunchScreen_Generation = "YES";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = "YES";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -540,6 +644,17 @@
 				TargetAttributes = {
 					C1E9827DB735CA9BAA54A540 = {
 						CreatedOnToolsVersion = "16.0";
+						SystemCapabilities = {
+							com.apple.iCloud = {
+								enabled = 1;
+							};
+							com.apple.Push = {
+								enabled = 1;
+							};
+							com.apple.BackgroundModes = {
+								enabled = 1;
+							};
+						};
 					};
 					9805CBD60EB4F66728D5D195 = {
 						CreatedOnToolsVersion = "16.0";

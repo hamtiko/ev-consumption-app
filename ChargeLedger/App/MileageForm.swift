@@ -7,8 +7,10 @@ struct MileageForm: View {
     let onSaved: (String?) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    @Query private var records: [MonthlyMileage]
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
+    @Query private var storedRecords: [MonthlyMileage]
+    private var records: [MonthlyMileage] { SyncRecords.unique(storedRecords) }
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
     @AppStorage("averageRate") private var defaultRate = "47.5"
     @AppStorage("t1Rate") private var defaultT1 = "53.48"
     @AppStorage("t2Rate") private var defaultT2 = "43.48"
@@ -210,7 +212,7 @@ struct MileageForm: View {
                 else { saved = Checkpoint(reading: reading); context.insert(saved) }
                 saved.homeDataStatus = "entered"; saved.homeDataAddedAt = .now
             }
-            try context.save()
+            try JournalStore.save(context)
             onSaved(request.mileage == nil && kilometres != nil ? "Now reset Trip A in your car. Trip B keeps running." : nil)
             dismiss()
         } catch {

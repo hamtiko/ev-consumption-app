@@ -3,19 +3,22 @@ import SwiftData
 import ChargeLedgerCore
 
 @Model
-final class Checkpoint {
-    @Attribute(.unique) var id: UUID
-    var date: Date
-    var recordedAt: Date
-    var t1Text: String
-    var t2Text: String
-    var averageRateText: String
-    var t1RateText: String
-    var t2RateText: String
-    var useTariffRates: Bool
+final class Checkpoint: JournalRecord {
+    var modifiedAt: Date = Date(timeIntervalSince1970: 0)
+    var revision: String = ""
+    var instanceID: String = UUID().uuidString
+    var id: UUID = UUID()
+    var date: Date = Date(timeIntervalSince1970: 0)
+    var recordedAt: Date = Date(timeIntervalSince1970: 0)
+    var t1Text: String = "0"
+    var t2Text: String = "0"
+    var averageRateText: String = "47.5"
+    var t1RateText: String = "53.48"
+    var t2RateText: String = "43.48"
+    var useTariffRates: Bool = false
     var monthBoundary: Date?
-    var closesCycle: Bool
-    var isBaseline: Bool
+    var closesCycle: Bool = false
+    var isBaseline: Bool = false
     var tripAText: String?
     var tripBText: String?
     var battery: Int?
@@ -29,6 +32,7 @@ final class Checkpoint {
     var homeDataAddedAt: Date? = nil
 
     init(reading: Reading, linkedChargeID: UUID? = nil) {
+        instanceID = UUID().uuidString
         id = reading.id; date = reading.date; recordedAt = .now
         t1Text = Numbers.string(reading.t1); t2Text = Numbers.string(reading.t2)
         averageRateText = Numbers.string(reading.averageRate)
@@ -73,13 +77,17 @@ final class Checkpoint {
 }
 
 @Model
-final class MonthlyMileage {
-    @Attribute(.unique) var id: UUID
-    var date: Date
-    var month: Date
-    var distanceText: String
+final class MonthlyMileage: JournalRecord {
+    var modifiedAt: Date = Date(timeIntervalSince1970: 0)
+    var revision: String = ""
+    var instanceID: String = UUID().uuidString
+    var id: UUID = UUID()
+    var date: Date = Date(timeIntervalSince1970: 0)
+    var month: Date = Date(timeIntervalSince1970: 0)
+    var distanceText: String = ""
 
     init(record: MileageRecord) {
+        instanceID = UUID().uuidString
         id = record.id; date = record.date; month = record.month
         distanceText = record.distanceKnown ? Numbers.string(record.distance) : ""
     }
@@ -91,16 +99,20 @@ final class MonthlyMileage {
 }
 
 @Model
-final class OutsideCharge {
-    @Attribute(.unique) var id: UUID
-    var date: Date
-    var energyText: String
-    var costText: String
-    var location: String
+final class OutsideCharge: JournalRecord {
+    var modifiedAt: Date = Date(timeIntervalSince1970: 0)
+    var revision: String = ""
+    var instanceID: String = UUID().uuidString
+    var id: UUID = UUID()
+    var date: Date = Date(timeIntervalSince1970: 0)
+    var energyText: String = "0"
+    var costText: String = "0"
+    var location: String = ""
     var tripBText: String? = nil
     var stationBrand: String? = nil
 
     init(charge: Charge) {
+        instanceID = UUID().uuidString
         id = charge.id; date = charge.date
         energyText = Numbers.string(charge.energy); costText = Numbers.string(charge.cost)
         location = charge.location
@@ -152,7 +164,7 @@ struct EntryRequest: Identifiable {
 enum LegacyMileageMigration {
     static func run(in context: ModelContext) throws {
         let checkpoints = try context.fetch(FetchDescriptor<Checkpoint>())
-        let existing = Set(try context.fetch(FetchDescriptor<MonthlyMileage>()).map(\.id))
+        var existing = Set(try context.fetch(FetchDescriptor<MonthlyMileage>()).map(\.id))
         var changed = false
         for checkpoint in checkpoints where !checkpoint.monthMileageMigrated {
             if !checkpoint.isBaseline, let boundary = checkpoint.monthBoundary,
@@ -161,8 +173,9 @@ enum LegacyMileageMigration {
                 context.insert(MonthlyMileage(record: MileageRecord(id: checkpoint.id, date: checkpoint.date,
                                                                   month: month, distance: distance)))
             }
+            existing.insert(checkpoint.id)
             checkpoint.monthMileageMigrated = true; changed = true
         }
-        if changed { try context.save() }
+        if changed { try JournalStore.save(context) }
     }
 }

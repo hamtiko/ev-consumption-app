@@ -8,7 +8,7 @@ import ChargeLedgerCore
 final class AppTests: XCTestCase {
     func testMonthlyMeterRoundTripKeepsOptionalMileageUnknownAndSharesCounter() throws {
         let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self,
-                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
         let context = ModelContext(container)
         let month = ISO8601DateFormatter().date(from: "2026-01-01T12:00:00Z")!
         let boundary = ISO8601DateFormatter().date(from: "2026-02-01T12:00:00Z")!
@@ -59,7 +59,7 @@ final class AppTests: XCTestCase {
     }
 
     func testSwiftDataRoundTripRetainsPriceOverrideAndLink() throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self, configurations: config)
         let context = ModelContext(container)
         let charge = Charge(date: .now, energy: 20, cost: 1500, tripB: Decimal(string: "125.5")!, stationBrand: "Acme Charge")
@@ -110,7 +110,7 @@ final class AppTests: XCTestCase {
 
     func testPendingHomeDataCanBeCompletedWithoutChangingOutsideSession() throws {
         let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self,
-                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
         let context = ModelContext(container)
         let start = Reading(date: Date(timeIntervalSince1970: 1000), t1: 0, t2: 0,
                             closesCycle: true, isBaseline: true, battery: 100, meterTotal: 500)
@@ -136,7 +136,7 @@ final class AppTests: XCTestCase {
 
     func testLegacyMonthlyMileageConversionIsIdempotentAndKeepsMeterData() throws {
         let container = try ModelContainer(for: Checkpoint.self, OutsideCharge.self, MonthlyMileage.self,
-                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
         let context = ModelContext(container)
         let boundary = ISO8601DateFormatter().date(from: "2026-02-01T12:00:00Z")!
         let checkpoint = Checkpoint(reading: Reading(date: boundary, t1: 100, t2: 200,

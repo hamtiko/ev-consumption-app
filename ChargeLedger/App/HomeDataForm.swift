@@ -6,7 +6,8 @@ struct HomeDataForm: View {
     let checkpoint: Checkpoint
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
     @AppStorage("useTariffRates") private var defaultTariffs = false
     @State private var single = true
     @State private var pricingWithTariffs = false
@@ -131,7 +132,7 @@ struct HomeDataForm: View {
                     saved.update(with: reading); saved.homeDataStatus = status; saved.homeDataAddedAt = .now
                 }
             }
-            try context.save(); dismiss()
+            try JournalStore.save(context); dismiss()
         } catch {
             context.rollback(); self.error = error.localizedDescription
         }

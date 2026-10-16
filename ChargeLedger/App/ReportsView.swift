@@ -23,9 +23,12 @@ private extension ReportRange {
 
 struct ReportsView: View {
     let add: (EntryRequest) -> Void
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
-    @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
-    @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
+    @Query(sort: \OutsideCharge.date) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query(sort: \MonthlyMileage.month) private var storedMileage: [MonthlyMileage]
+    private var mileage: [MonthlyMileage] { SyncRecords.unique(storedMileage) }
     @State private var mode = ReportMode.consumption
     @State private var range = ReportRange.sixMonths
     @State private var selectedCycleID: UUID?
@@ -225,9 +228,12 @@ private struct PeriodDetailView: View {
     let id: UUID
     let mode: ReportMode
     let add: (EntryRequest) -> Void
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
-    @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
-    @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
+    @Query(sort: \OutsideCharge.date) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query(sort: \MonthlyMileage.month) private var storedMileage: [MonthlyMileage]
+    private var mileage: [MonthlyMileage] { SyncRecords.unique(storedMileage) }
     private var summary: PeriodSummary? { reports(mode: mode, checkpoints: checkpoints, charges: charges, mileage: mileage).first { $0.id == id } }
 
     var body: some View {
@@ -331,8 +337,10 @@ private struct BrandDetailView: View {
     let name: String
     let range: ReportRange
     let add: (EntryRequest) -> Void
-    @Query(sort: \OutsideCharge.date, order: .reverse) private var charges: [OutsideCharge]
-    @Query private var checkpoints: [Checkpoint]
+    @Query(sort: \OutsideCharge.date, order: .reverse) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
     private var sessions: [OutsideCharge] {
         charges.filter { StationBrands.key($0.stationBrand) == brandID && range.includes($0.date, through: .now) }
     }

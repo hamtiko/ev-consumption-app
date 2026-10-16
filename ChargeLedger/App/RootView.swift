@@ -3,7 +3,9 @@ import SwiftData
 
 struct RootView: View {
     @EnvironmentObject private var reminders: ReminderService
+    @EnvironmentObject private var cloudSync: CloudSyncService
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @State private var entry: EntryRequest?
     @State private var resetMessage: String?
     @State private var showReset = false
@@ -28,6 +30,7 @@ struct RootView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .sheet(item: $entry, onDismiss: {
+            cloudSync.setEntryPresented(false)
             if resetMessage != nil { showReset = true }
             else { openRequestedMonth() }
         }) { request in
@@ -43,9 +46,18 @@ struct RootView: View {
         } message: { Text(storageError ?? resetMessage ?? "") }
         .onAppear { openRequestedMonth() }
         .onChange(of: reminders.monthRequested) { _, _ in openRequestedMonth() }
+        .onChange(of: entry?.id) { _, id in
+            if id != nil { cloudSync.setEntryPresented(true) }
+        }
+        .onChange(of: cloudSync.journalError) { _, error in storageError = error }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                cloudSync.reconcileSoon()
+                Task { await cloudSync.refreshAccount() }
+            }
+        }
         .task {
-            do { try LegacyMileageMigration.run(in: context) }
-            catch { context.rollback(); storageError = error.localizedDescription }
+            await cloudSync.start(context: context)
             if reminderEnabled {
                 // Refresh time-zone behavior on launch; permission is requested only in Settings.
                 try? await reminders.schedule(hour: reminderHour, minute: reminderMinute, requestPermission: false)

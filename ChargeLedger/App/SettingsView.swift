@@ -6,10 +6,15 @@ import ChargeLedgerCore
 
 struct SettingsView: View {
     @EnvironmentObject private var reminders: ReminderService
+    @EnvironmentObject private var cloudSync: CloudSyncService
+    @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
-    @Query(sort: \Checkpoint.date) private var checkpoints: [Checkpoint]
-    @Query(sort: \OutsideCharge.date) private var charges: [OutsideCharge]
-    @Query(sort: \MonthlyMileage.month) private var mileage: [MonthlyMileage]
+    @Query(sort: \Checkpoint.date) private var storedCheckpoints: [Checkpoint]
+    private var checkpoints: [Checkpoint] { SyncRecords.unique(storedCheckpoints) }
+    @Query(sort: \OutsideCharge.date) private var storedCharges: [OutsideCharge]
+    private var charges: [OutsideCharge] { SyncRecords.unique(storedCharges) }
+    @Query(sort: \MonthlyMileage.month) private var storedMileage: [MonthlyMileage]
+    private var mileage: [MonthlyMileage] { SyncRecords.unique(storedMileage) }
     @AppStorage("averageRate") private var savedRate = "47.5"
     @AppStorage("t1Rate") private var savedT1 = "53.48"
     @AppStorage("t2Rate") private var savedT2 = "43.48"
@@ -26,6 +31,11 @@ struct SettingsView: View {
     @State private var permissionDenied = false
     @State private var exporting = false
     @State private var exportDocument = LedgerCSV(text: "")
+    @State private var exportingBackup = false
+    @State private var backupDocument = LedgerBackupDocument()
+    @State private var importingBackup = false
+    @State private var importPreview: BackupImportPreview?
+    @State private var importMessage: String?
     @State private var scheduling = false
     @FocusState private var fieldFocused: InputField?
 
@@ -76,18 +86,54 @@ struct SettingsView: View {
             }
 
             Section {
+                LabeledContent("Status", value: cloudSync.status)
+                if let date = cloudSync.lastTransfer {
+                    LabeledContent("Last transfer", value: date.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let error = cloudSync.syncError {
+                    Text(error).font(.footnote).foregroundStyle(.secondary)
+                }
+                if let error = cloudSync.journalError {
+                    Text("Journal update: \(error)").font(.footnote).foregroundStyle(.orange)
+                }
+                Button("Check iCloud status") { Task { await cloudSync.refreshAccount() } }
+                if !cloudSync.accountAvailable {
+                    Button("Open device Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                    }
+                }
+            } header: { Text("iCloud sync") } footer: {
+                Text("Your journal syncs automatically between devices using the same iCloud account. You can keep recording offline; iCloud sends changes when available. Meter defaults and notification preferences are specific to each device. Sync can take time and also carries deletions, so keep a separate backup.")
+            }
+
+            Section {
                 Button {
+                    do { exportBackup(try BackupStore.snapshot(in: context).encoded()) }
+                    catch { message = error.localizedDescription }
+                } label: { Label("Export backup", systemImage: "externaldrive.badge.icloud") }
+                Button { fieldFocused = nil; importingBackup = true } label: {
+                    Label("Import backup", systemImage: "square.and.arrow.down")
+                }
+                if FileManager.default.fileExists(atPath: BackupStore.upgradeBackupURL.path) {
+                    Button("Export pre-upgrade safety copy") { exportSafetyCopy(BackupStore.upgradeBackupURL) }
+                }
+                let importCopy = BackupStore.safetyDirectory.appendingPathComponent("before-last-import.json")
+                if FileManager.default.fileExists(atPath: importCopy.path) {
+                    Button("Export pre-import safety copy") { exportSafetyCopy(importCopy) }
+                }
+                Button {
+                    fieldFocused = nil
                     exportDocument = LedgerCSV(text: CSVExport.make(readings: checkpoints, charges: charges, mileage: mileage))
                     exporting = true
                 } label: { Label("Export all entries as CSV", systemImage: "square.and.arrow.up") }
                 .disabled(checkpoints.isEmpty && charges.isEmpty && mileage.isEmpty)
             } header: { Text("Your data") } footer: {
-                Text("Entries are stored locally on this iPhone. Export includes raw readings, trip distances, battery levels, saved prices, and outside charging. Keep exports for your own backup or spreadsheet analysis.")
+                Text("Save a restorable JSON backup to iCloud Drive, OneDrive, or another location in Files. Import shows a preview, adds missing entries, and keeps the latest edit for matching IDs. CSV export is for spreadsheets and cannot be restored. Backup files include your charging history and locations; choose where you keep them.")
             }
             Section("About") {
                 LabeledContent("Distance", value: "Kilometres")
                 LabeledContent("Currency", value: "AMD")
-                LabeledContent("Storage", value: "On-device · SwiftData")
+                LabeledContent("Storage", value: "On-device + private iCloud")
                 Text("Monthly home meter readings measure utility costs. Trip A is optional. Trip B resets after every 100% cycle, with home readings and outside sessions recorded together. Missing home data can be completed later.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
@@ -106,9 +152,45 @@ struct SettingsView: View {
                       defaultFilename: "charge-ledger-\(Date.now.formatted(.iso8601.year().month().day().dateSeparator(.dash)))") { result in
             if case .failure(let error) = result { message = error.localizedDescription }
         }
+        .fileExporter(isPresented: $exportingBackup, document: backupDocument, contentType: .json,
+                      defaultFilename: "charge-ledger-backup-\(Date.now.formatted(.iso8601.year().month().day().dateSeparator(.dash)))") { result in
+            if case .failure(let error) = result { message = error.localizedDescription }
+        }
+        .fileImporter(isPresented: $importingBackup, allowedContentTypes: [.json]) { result in
+            do {
+                let backup = try BackupStore.read(from: result.get())
+                let plan = try backup.merging(into: BackupStore.snapshot(in: context))
+                importPreview = BackupImportPreview(backup: backup, result: plan)
+            } catch {
+                if (error as NSError).code != NSUserCancelledError { message = error.localizedDescription }
+            }
+        }
+        .sheet(item: $importPreview, onDismiss: {
+            if let feedback = importMessage { message = feedback; importMessage = nil }
+        }) { preview in
+            BackupImportView(preview: preview) { includeSettings in
+                do {
+                    let result = try BackupStore.restore(preview.backup, in: context, restoreSettings: includeSettings)
+                    rate = savedRate; t1Rate = savedT1; t2Rate = savedT2; tariffs = savedTariffs
+                    cloudSync.reconcileSoon()
+                    importMessage = "Imported \(result.added) new entries and \(result.updated) newer edits. Kept \(result.kept) matching entries."
+                    importPreview = nil
+                } catch { importMessage = error.localizedDescription; importPreview = nil }
+            }
+        }
         .alert("Charge Ledger", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("OK") { message = nil }
         } message: { Text(message ?? "") }
+    }
+
+    private func exportBackup(_ data: Data) {
+        backupDocument = LedgerBackupDocument(data: data)
+        fieldFocused = nil; exportingBackup = true
+    }
+
+    private func exportSafetyCopy(_ url: URL) {
+        do { exportBackup(try Data(contentsOf: url)) }
+        catch { message = error.localizedDescription }
     }
 
     private func savePrices() {
