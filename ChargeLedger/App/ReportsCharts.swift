@@ -32,19 +32,48 @@ struct CycleTrendChart: View {
     let statistics: MetricStatistics
     let open: (PeriodSummary) -> Void
     @State private var selectedDate: Date?
+    @State private var selectedCycleID: UUID?
+    @ScaledMetric(relativeTo: .caption) private var calloutHeadroom: CGFloat = 90
+    @ScaledMetric(relativeTo: .subheadline) private var selectionControlHeight: CGFloat = 44
     private var selected: PeriodSummary? {
-        guard let selectedDate else { return nil }
-        return cycles.min { abs($0.end.timeIntervalSince(selectedDate)) < abs($1.end.timeIntervalSince(selectedDate)) }
+        cycles.first { $0.id == selectedCycleID }
     }
 
     var body: some View {
         ReportCard(title: "\(metric.title) · \(metric.unit)",
-                   note: "Average is weighted by distance. Min/max are individual completed cycles. Tap or drag the chart to inspect a cycle.") {
+                   note: "Average is weighted by distance. Min/max are individual completed cycles.") {
             HStack {
                 statistic("Average", statistics.average)
                 statistic("Minimum", statistics.minimum)
                 statistic("Maximum", statistics.maximum)
             }
+            // Reserve the controls' height so selection never moves the chart under the finger.
+            HStack {
+                if let selected {
+                    Button { open(selected) } label: {
+                        Label("View cycle", systemImage: "arrow.up.right.square")
+                            .frame(minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(LedgerStyle.accent)
+                    Spacer()
+                    Button {
+                        selectedCycleID = nil; selectedDate = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear selected cycle")
+                } else {
+                    Text("Touch or drag to inspect a cycle.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+            }
+            .font(.subheadline)
+            .frame(minHeight: selectionControlHeight)
             Chart {
                 ForEach(cycles) { cycle in
                     if let value = metric.value(cycle) {
@@ -52,6 +81,11 @@ struct CycleTrendChart: View {
                             .foregroundStyle(LedgerStyle.accent)
                         PointMark(x: .value("Cycle completed", cycle.end), y: .value(metric.unit, Numbers.double(value)))
                             .foregroundStyle(LedgerStyle.accent)
+                            .symbolSize(selectedCycleID == cycle.id ? 80 : 30)
+                            .annotation(position: .top, spacing: 20,
+                                        overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                                if selectedCycleID == cycle.id { selectionCallout(cycle) }
+                            }
                     }
                 }
                 RuleMark(y: .value("Average", Numbers.double(statistics.average)))
@@ -63,24 +97,36 @@ struct CycleTrendChart: View {
                 }
             }
             .chartXSelection(value: $selectedDate)
-            .chartYScale(domain: .automatic(includesZero: true))
-            .frame(height: 200)
-            if let selected {
-                Button { open(selected) } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(selected.end.formatted(date: .abbreviated, time: .omitted))
-                            Text("\(LedgerStyle.number(metric.value(selected), digits: 2)) \(metric.unit) · \(LedgerStyle.number(selected.distance)) km")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                    }
-                }
-                .buttonStyle(.plain)
+            .chartYScale(domain: .automatic(includesZero: true),
+                         range: .plotDimension(startPadding: 0, endPadding: calloutHeadroom))
+            .frame(height: 200 + calloutHeadroom)
+            .onChange(of: selectedDate) { _, date in
+                // Charts clears its transient gesture value on release. Keep the inspected cycle
+                // until the user clears it or chooses another point, so its details remain readable.
+                guard let date else { return }
+                selectedCycleID = cycles.min {
+                    abs($0.end.timeIntervalSince(date)) < abs($1.end.timeIntervalSince(date))
+                }?.id
             }
         }
-        .onChange(of: cycles.map(\.id)) { _, _ in selectedDate = nil }
+        .onChange(of: cycles.map(\.id)) { _, _ in selectedCycleID = nil; selectedDate = nil }
+    }
+
+    private func selectionCallout(_ cycle: PeriodSummary) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(LedgerStyle.number(metric.value(cycle), digits: 2)) \(metric.unit)")
+                .font(.subheadline.weight(.semibold)).monospacedDigit()
+            Text("\(cycle.end.formatted(date: .abbreviated, time: .omitted)) · \(LedgerStyle.number(cycle.distance)) km")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: 200, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay { RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.1), lineWidth: 0.5) }
+        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .combine)
     }
 
     private func statistic(_ title: String, _ value: Decimal) -> some View {
