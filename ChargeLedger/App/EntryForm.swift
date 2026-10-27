@@ -287,7 +287,7 @@ private struct ChargingForm: View {
             DecimalField(title: "Energy added", unit: "kWh", text: $energy, focus: $focused, field: .energy)
             DecimalField(title: "Total paid", unit: "AMD", text: $cost, focus: $focused, field: .cost)
             StationBrandField(brand: $brand, choices: brandChoices, focus: $focused, field: .brand)
-            TextField("Station / location (optional)", text: $location)
+            TextField("Location (optional)", text: $location)
                 .inputFocus(.location, focus: $focused).id(InputField.location)
             if isOutside { Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil) }
         } header: { Text(existingSession == nil ? "Outside session" : "Outside session · editing saved entry") } footer: {
@@ -370,7 +370,7 @@ private struct ChargingForm: View {
                              focus: $focused, field: .sessionCost(session.id))
                 StationBrandField(brand: $session.brand, choices: brandChoices,
                                   focus: $focused, field: .sessionBrand(session.id))
-                TextField("Station / location (optional)", text: $session.location)
+                TextField("Location (optional)", text: $session.location)
                     .inputFocus(.sessionLocation(session.id), focus: $focused)
                     .id(InputField.sessionLocation(session.id))
                 Button("Remove session", role: .destructive) {

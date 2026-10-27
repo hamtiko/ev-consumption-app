@@ -6,7 +6,7 @@ import ChargeLedgerCore
 private enum ReportMode: String, CaseIterable {
     case consumption = "Consumption"
     case monthly = "Monthly"
-    case stations = "Brands"
+    case stations = "Stations"
 }
 
 private extension ReportRange {
@@ -166,9 +166,9 @@ struct ReportsView: View {
         let brands = ReportAnalytics.brands(charges: outside.map(\.charge))
         if brands.isEmpty {
             ContentUnavailableView("No outside sessions in this range", systemImage: "bolt.car",
-                description: Text("Add outside sessions to a 100% cycle and enter or choose a charging brand."))
+                description: Text("Add outside sessions to a 100% cycle and enter or choose a charging station."))
         } else {
-            ReportCard(title: "Outside charging", note: "Sessions are filtered by charging date, including sessions in pending cycles. Old records without a brand remain under Unspecified.") {
+            ReportCard(title: "Outside charging", note: "Sessions are filtered by charging date, including sessions in pending cycles. Old records without a station name remain under Unspecified.") {
                 HStack {
                     Metric(title: "Sessions", value: String(outside.count), unit: "")
                     Metric(title: "Energy added", value: LedgerStyle.number(brands.reduce(0) { $0 + $1.energy }), unit: "kWh")
@@ -176,7 +176,7 @@ struct ReportsView: View {
                 Metric(title: "Actual amount paid", value: LedgerStyle.number(brands.reduce(0) { $0 + $1.cost }), unit: "AMD")
             }
             BrandComparisonChart(brands: brands)
-            Text("Brand details").font(.headline)
+            Text("Station details").font(.headline)
             ForEach(brands) { brand in
                 NavigationLink {
                     BrandDetailView(brandID: brand.id, name: brand.name, range: range, add: add)
@@ -360,7 +360,7 @@ private struct BrandDetailView: View {
                     }
                 }
             } else {
-                ContentUnavailableView("No sessions for this brand", systemImage: "bolt.car")
+                ContentUnavailableView("No sessions for this station", systemImage: "bolt.car")
             }
         }
         .navigationTitle(name)

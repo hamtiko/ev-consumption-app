@@ -227,14 +227,14 @@ struct BrandComparisonChart: View {
         brands.sorted { measure.value($0) == measure.value($1) ? $0.id < $1.id : measure.value($0) > measure.value($1) }
     }
     var body: some View {
-        ReportCard(title: "Charging brand comparison", note: "Compare energy, actual payments or session count. Brands describe where you charge, not driving efficiency.") {
-            Picker("Compare brands by", selection: $measure) {
+        ReportCard(title: "Charging station comparison", note: "Compare energy, actual payments or session count by charging station.") {
+            Picker("Compare stations by", selection: $measure) {
                 ForEach(BrandMeasure.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            // IDs distinguish an unassigned brand from a brand literally named “Unspecified”.
+            // IDs distinguish an unassigned station from one literally named “Unspecified”.
             Chart(sorted) { brand in
-                BarMark(x: .value(measure.rawValue, measure.value(brand)), y: .value("Brand", brand.id))
+                BarMark(x: .value(measure.rawValue, measure.value(brand)), y: .value("Station", brand.id))
                     .foregroundStyle(LedgerStyle.outside)
                     .annotation(position: .trailing) {
                         Text(measure == .sessions ? String(brand.sessions) : LedgerStyle.number(measure == .energy ? brand.energy : brand.cost))

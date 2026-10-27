@@ -15,7 +15,7 @@ For a simulator/local-only build without iCloud signing, remove the iCloud/push 
 
 ## What syncs
 
-- Meter readings, 100% cycles, Trip A/B distances, actual Trip B counter readings and calculation references, individual saved prices, home-data completion status/timestamps, outside charging sessions, brands and locations.
+- Meter readings, 100% cycles, Trip A/B distances, actual Trip B counter readings and calculation references, individual saved prices, home-data completion status/timestamps, outside charging sessions, station names and locations.
 - Reports are recalculated from those records on each device.
 - Changes and deletions propagate. Sync is eventually consistent and can be delayed by connectivity, iCloud quota, account access, and iOS background scheduling.
 - Meter defaults and monthly notification preferences stay on each device. JSON backups include meter defaults, with an explicit option to restore them. Reminder permission and scheduling are not restored or synced.
@@ -38,6 +38,6 @@ Choose **Settings → Your data → Export backup**. Save the JSON file to iClou
 
 Import is a merge, not a replacement or an undo of newer edits. A backup from before an entry was deleted can restore that missing entry. To recover the exact snapshot independently of an existing journal, restore it into an empty installation. Avoid importing on a second device while its first iCloud download is still pending.
 
-Version 2 JSON preserves raw decimal text, optional versus zero mileage, record IDs/links, dates, meter formats, per-record prices, legacy partial Trip B values, actual Trip B counters and calculation references, pending/entered/unchanged home metadata, brands and locations. Version 1 backups remain importable with actual counters unknown. Inconsistent counter arithmetic is rejected before import. Older app releases cannot import version 2 files; update the app before restoring them. Dates use Foundation JSON's seconds since 2001-01-01 UTC, retaining subsecond precision. Import accepts files up to 20 MB. CSV remains available for spreadsheet analysis and is not an import format; the three new counter columns are appended without moving the existing brand column.
+Version 2 JSON preserves raw decimal text, optional versus zero mileage, record IDs/links, dates, meter formats, per-record prices, legacy partial Trip B values, actual Trip B counters and calculation references, pending/entered/unchanged home metadata, station names and locations. Version 1 backups remain importable with actual counters unknown. Inconsistent counter arithmetic is rejected before import. Older app releases cannot import version 2 files; update the app before restoring them. Dates use Foundation JSON's seconds since 2001-01-01 UTC, retaining subsecond precision. Import accepts files up to 20 MB. CSV remains available for spreadsheet analysis and is not an import format; the existing `station_brand` column retains the station name for compatibility.
 
 Keep independent backup files: deleting a record on one synced device will also delete it from iCloud and other devices. Local safety copies live in the app sandbox and disappear if the app is uninstalled unless exported first.

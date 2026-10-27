@@ -10,11 +10,11 @@ struct StationBrandField: View {
 
     var body: some View {
         HStack {
-            TextField("Charging brand (optional)", text: $brand)
+            TextField("Charging station (optional)", text: $brand)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .inputFocus(field, focus: focus)
-                .accessibilityLabel("Charging station brand")
+                .accessibilityLabel("Charging station")
             Button { focus.wrappedValue = nil; choosing = true } label: {
                 Label("Choose", systemImage: "chevron.down").font(.subheadline)
             }
@@ -39,14 +39,14 @@ private struct StationBrandPicker: View {
         NavigationStack {
             KeyboardForm(focus: $focused) {
                 Section {
-                    TextField("Find or add a brand", text: $search)
+                    TextField("Find or add a station", text: $search)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
                         .inputFocus(.brandSearch, focus: $focused)
                         .id(InputField.brandSearch)
                 }
                 Button("Unspecified") { choose("") }
-                Section("Saved brands") {
+                Section("Saved stations") {
                     ForEach(matches, id: \.self) { name in
                         Button { choose(name) } label: {
                             HStack {
@@ -60,12 +60,12 @@ private struct StationBrandPicker: View {
                         Button { choose(name) } label: { Label("Add \(name)", systemImage: "plus") }
                     }
                     if choices.isEmpty && search.isEmpty {
-                        Text("Type a brand in the search field to add one. It will be available again after saving the session.")
+                        Text("Type a station name in the search field to add one. It will be available again after saving the session.")
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            .navigationTitle("Charging brand")
+            .navigationTitle("Charging station")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
