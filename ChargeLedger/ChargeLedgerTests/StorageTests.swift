@@ -79,6 +79,64 @@ final class StorageTests: XCTestCase {
         XCTAssertEqual(old.url, updated.url)
     }
 
+    func testCalculatedTripBCountersSurvivePersistenceBackupAndHomeDataCompletion() throws {
+        let source = ModelContext(try container())
+        let reading = Reading(date: Date(timeIntervalSince1970: 1000), t1: 0, t2: 0,
+                              closesCycle: true, tripB: Decimal(string: "533.4")!, battery: 100, hasMeterReading: false)
+        let checkpoint = Checkpoint(reading: reading)
+        checkpoint.tripBCounterText = "960"; checkpoint.tripBPreviousCounterText = "426.6"
+        checkpoint.tripBPreviousCheckpointID = UUID()
+        source.insert(checkpoint); try JournalStore.save(source)
+        let backup = try JournalBackup.decode(BackupStore.snapshot(in: source).encoded())
+        let target = ModelContext(try container())
+        _ = try BackupStore.restore(backup, in: target, restoreSettings: false)
+        let stored = try XCTUnwrap(target.fetch(FetchDescriptor<Checkpoint>()).first)
+        XCTAssertEqual(stored.tripBText, "533.4"); XCTAssertEqual(stored.tripBCounterText, "960")
+        XCTAssertEqual(stored.tripBPreviousCounterText, "426.6")
+        XCTAssertEqual(stored.tripBPreviousCheckpointID, checkpoint.tripBPreviousCheckpointID)
+        stored.update(with: Reading(id: stored.id, date: stored.date, t1: 100, t2: 200,
+                                    closesCycle: true, tripB: stored.reading.tripB, battery: 100))
+        try JournalStore.save(target)
+        XCTAssertEqual(stored.tripBCounterText, "960")
+        XCTAssertEqual(stored.reading.tripB, Decimal(string: "533.4"))
+        let row = try XCTUnwrap(CSVExport.make(readings: [stored], charges: []).components(separatedBy: "\r\n")
+            .first { $0.hasPrefix("\"checkpoint\"") }).components(separatedBy: ",")
+        XCTAssertEqual(row[27], "\"960\""); XCTAssertEqual(row[28], "\"426.6\"")
+        XCTAssertEqual(row[29], "\"\(try XCTUnwrap(stored.tripBPreviousCheckpointID).uuidString)\"")
+    }
+
+    func testUpgradeFromCloudSchemaLeavesHistoricalRawCounterUnknown() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("default.store"), id = UUID(), sessionID = UUID()
+        let date = Date(timeIntervalSince1970: 1000)
+        try autoreleasepool {
+            let schema = Schema(versionedSchema: CloudJournalSchemaV2.self)
+            let old = try ModelContainer(for: schema,
+                configurations: [ModelConfiguration(schema: schema, url: url, cloudKitDatabase: .none)])
+            let context = ModelContext(old)
+            let checkpoint = CloudJournalSchemaV2.Checkpoint(reading: Reading(id: id, date: date, t1: 100, t2: 200,
+                averageRate: 51, closesCycle: true, tripB: Decimal(string: "533.4")!, battery: 100), linkedChargeID: sessionID)
+            checkpoint.modifiedAt = date; checkpoint.revision = "existing-edit"; checkpoint.instanceID = "existing-replica"
+            context.insert(checkpoint)
+            context.insert(CloudJournalSchemaV2.OutsideCharge(charge: Charge(id: sessionID, date: date, energy: 30,
+                                                                           cost: 2000, stationBrand: "Brand")))
+            try context.save()
+        }
+        let schema = Schema(versionedSchema: JournalSchema.self)
+        let current = try ModelContainer(for: schema, migrationPlan: JournalMigration.self,
+            configurations: [ModelConfiguration(schema: schema, url: url, cloudKitDatabase: .none)])
+        let context = ModelContext(current)
+        let checkpoint = try XCTUnwrap(context.fetch(FetchDescriptor<Checkpoint>()).first)
+        XCTAssertEqual(checkpoint.id, id); XCTAssertEqual(checkpoint.tripBText, "533.4")
+        XCTAssertNil(checkpoint.tripBCounterText); XCTAssertNil(checkpoint.tripBPreviousCounterText)
+        XCTAssertNil(checkpoint.tripBPreviousCheckpointID)
+        XCTAssertEqual(checkpoint.modifiedAt, date); XCTAssertEqual(checkpoint.revision, "existing-edit")
+        XCTAssertEqual(checkpoint.instanceID, "existing-replica"); XCTAssertEqual(checkpoint.linkedChargeID, sessionID)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<OutsideCharge>()).first?.stationBrand, "Brand")
+    }
+
     func testUpgradeFromUnversionedLocalSchemaPreservesAllRecordTypes() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

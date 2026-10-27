@@ -2,7 +2,7 @@ import Foundation
 
 public struct JournalBackup: Codable, Equatable, Sendable {
     public var format = "charge-ledger-backup"
-    public var version = 1
+    public var version = 2
     public var createdAt: Date
     public var checkpoints: [BackupCheckpoint]
     public var outsideCharges: [BackupOutsideCharge]
@@ -34,7 +34,7 @@ public struct JournalBackup: Codable, Equatable, Sendable {
         do {
             let header = try decoder.decode(Header.self, from: data)
             guard header.format == "charge-ledger-backup" else { throw BackupError("This is not a Charge Ledger backup.") }
-            guard header.version == 1 else { throw BackupError("This backup needs a different app version. Update Charge Ledger and try again.") }
+            guard (1...2).contains(header.version) else { throw BackupError("This backup needs a different app version. Update Charge Ledger and try again.") }
             let backup = try decoder.decode(Self.self, from: data)
             try backup.validate()
             return backup
@@ -43,7 +43,7 @@ public struct JournalBackup: Codable, Equatable, Sendable {
     }
 
     public func validate() throws {
-        guard format == "charge-ledger-backup", version == 1 else { throw BackupError("Unsupported backup format.") }
+        guard format == "charge-ledger-backup", (1...2).contains(version) else { throw BackupError("Unsupported backup format.") }
         func number(_ text: String?, required: Bool = false) throws {
             guard let text else {
                 if required { throw BackupError("A required numeric value is missing.") }
@@ -70,7 +70,21 @@ public struct JournalBackup: Codable, Equatable, Sendable {
             for value in [record.t1Text, record.t2Text, record.averageRateText, record.t1RateText, record.t2RateText] {
                 try number(value, required: true)
             }
-            for value in [record.tripAText, record.tripBText, record.meterTotalText] { try number(value) }
+            for value in [record.tripAText, record.tripBText, record.meterTotalText,
+                          record.tripBCounterText, record.tripBPreviousCounterText] { try number(value) }
+            if let previous = record.tripBPreviousCounterText {
+                guard let current = record.tripBCounterText, let previousID = record.tripBPreviousCheckpointID,
+                      previousID != record.id,
+                      let calculation = try? TripBCalculation(currentText: current, previousText: previous),
+                      calculation.distance == record.tripBText.flatMap(Numbers.parse) else {
+                    throw BackupError("The backup contains an inconsistent Trip B calculation.")
+                }
+            } else if record.tripBPreviousCheckpointID != nil {
+                throw BackupError("The backup is missing a previous Trip B counter.")
+            } else if let counter = record.tripBCounterText, record.closesCycle, !record.isBaseline,
+                      Numbers.parse(counter) != record.tripBText.flatMap(Numbers.parse) {
+                throw BackupError("The backup contains an inconsistent Trip B counter.")
+            }
             for value in [record.date, record.recordedAt, record.monthBoundary, record.homeDataAddedAt, record.modifiedAt] { try date(value) }
             if let boundary = record.monthBoundary { try month(boundary) }
             guard record.battery.map({ (0...100).contains($0) }) ?? true,
@@ -176,6 +190,9 @@ public struct BackupCheckpoint: Codable, Equatable, Sendable {
     public var isBaseline: Bool
     public var tripAText: String?
     public var tripBText: String?
+    public var tripBCounterText: String?
+    public var tripBPreviousCounterText: String?
+    public var tripBPreviousCheckpointID: UUID?
     public var battery: Int?
     public var linkedChargeID: UUID?
     public var hasMeterReading: Bool
@@ -201,6 +218,9 @@ public struct BackupCheckpoint: Codable, Equatable, Sendable {
                 isBaseline: Bool = false,
                 tripAText: String? = nil,
                 tripBText: String? = nil,
+                tripBCounterText: String? = nil,
+                tripBPreviousCounterText: String? = nil,
+                tripBPreviousCheckpointID: UUID? = nil,
                 battery: Int? = nil,
                 linkedChargeID: UUID? = nil,
                 hasMeterReading: Bool = true,
@@ -225,6 +245,9 @@ public struct BackupCheckpoint: Codable, Equatable, Sendable {
         self.isBaseline = isBaseline
         self.tripAText = tripAText
         self.tripBText = tripBText
+        self.tripBCounterText = tripBCounterText
+        self.tripBPreviousCounterText = tripBPreviousCounterText
+        self.tripBPreviousCheckpointID = tripBPreviousCheckpointID
         self.battery = battery
         self.linkedChargeID = linkedChargeID
         self.hasMeterReading = hasMeterReading

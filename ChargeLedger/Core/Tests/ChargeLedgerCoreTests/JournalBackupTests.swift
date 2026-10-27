@@ -29,6 +29,41 @@ final class JournalBackupTests: XCTestCase {
         XCTAssertEqual(try JournalBackup.decode(backup.encoded()).checkpoints, [record])
     }
 
+    func testVersionTwoRetainsActualTripCountersAndCalculatedDistance() throws {
+        let record = BackupCheckpoint(id: UUID(), date: date, recordedAt: date, closesCycle: true,
+            tripBText: "533.4", tripBCounterText: "960.0", tripBPreviousCounterText: "426.6",
+            tripBPreviousCheckpointID: UUID(), battery: 100)
+        let backup = JournalBackup(checkpoints: [record])
+        let decoded = try JournalBackup.decode(backup.encoded())
+        XCTAssertEqual(decoded.version, 2); XCTAssertEqual(decoded.checkpoints, [record])
+    }
+
+    func testVersionOneBackupDoesNotGuessActualCarCounter() throws {
+        var old = JournalBackup(checkpoints: [BackupCheckpoint(id: UUID(), date: date, recordedAt: date,
+                                                               closesCycle: true, tripBText: "533.4", battery: 100)])
+        old.version = 1
+        let data = try old.encoded()
+        XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("tripBCounterText"))
+        let restored = try JournalBackup.decode(data)
+        XCTAssertEqual(restored.version, 1)
+        XCTAssertEqual(restored.checkpoints.first?.tripBText, "533.4")
+        XCTAssertNil(restored.checkpoints.first?.tripBCounterText)
+        XCTAssertNil(restored.checkpoints.first?.tripBPreviousCounterText)
+    }
+
+    func testInconsistentTripCounterMetadataIsRejected() throws {
+        var record = BackupCheckpoint(id: UUID(), date: date, recordedAt: date, closesCycle: true,
+            tripBText: "533.4", tripBCounterText: "960", tripBPreviousCounterText: "426.6",
+            tripBPreviousCheckpointID: UUID(), battery: 100)
+        XCTAssertNoThrow(try JournalBackup(checkpoints: [record]).encoded())
+        record.tripBText = "600"
+        XCTAssertThrowsError(try JournalBackup(checkpoints: [record]).encoded())
+        record.tripBText = "533.4"; record.tripBPreviousCounterText = nil
+        XCTAssertThrowsError(try JournalBackup(checkpoints: [record]).encoded())
+        record.tripBPreviousCheckpointID = nil
+        XCTAssertThrowsError(try JournalBackup(checkpoints: [record]).encoded())
+    }
+
     func testUnknownAndExplicitZeroMonthlyMileageRemainDifferent() throws {
         let unknown = BackupMonthlyMileage(id: UUID(), date: date, month: month, distanceText: "")
         var zero = unknown; zero.id = UUID(); zero.distanceText = "0"

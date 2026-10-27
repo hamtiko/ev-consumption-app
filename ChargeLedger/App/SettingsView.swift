@@ -243,7 +243,8 @@ enum CSVExport {
         let headers = ["record_type", "id", "recorded_at", "reading_time", "month_boundary", "is_baseline", "closes_cycle",
                        "t1_kwh", "t2_kwh", "trip_a_km", "trip_b_km", "battery_percent", "home_pricing",
                        "single_price_amd_kwh", "t1_price_amd_kwh", "t2_price_amd_kwh", "outside_kwh", "outside_amd", "location", "linked_charge_id",
-                       "has_home_meter", "meter_total_kwh", "home_data_status", "home_data_added_at", "meter_format", "month_closed", "station_brand"]
+                       "has_home_meter", "meter_total_kwh", "home_data_status", "home_data_added_at", "meter_format", "month_closed", "station_brand",
+                       "trip_b_counter_km", "trip_b_previous_counter_km", "trip_b_previous_checkpoint_id"]
         var rows = [headers]
         for reading in readings {
             var row = [String](repeating: "", count: headers.count)
@@ -260,6 +261,8 @@ enum CSVExport {
             row[20] = String(reading.hasMeterReading); row[21] = reading.meterTotalText ?? ""
             row[22] = reading.homeDataStatus ?? ""; row[23] = reading.homeDataAddedAt?.ISO8601Format() ?? ""
             row[24] = reading.hasMeterReading ? (reading.meterTotalText == nil ? "t1_t2" : "single") : ""
+            row[27] = reading.tripBCounterText ?? ""; row[28] = reading.tripBPreviousCounterText ?? ""
+            row[29] = reading.tripBPreviousCheckpointID?.uuidString ?? ""
             rows.append(row)
         }
         for charge in charges {

@@ -92,8 +92,10 @@ final class AppTests: XCTestCase {
         XCTAssertTrue(csv.hasPrefix("\u{FEFF}"))
         let chargeRow = try XCTUnwrap(csv.components(separatedBy: "\r\n").first { $0.hasPrefix("\"outside_charge\"") })
         XCTAssertEqual(chargeRow.components(separatedBy: ",")[10], "\"125.5\"")
-        XCTAssertTrue(chargeRow.hasSuffix("\"Acme \"\"EV\"\"\""))
-        XCTAssertTrue(csv.components(separatedBy: "\r\n")[0].hasSuffix("\"station_brand\""))
+        XCTAssertTrue(chargeRow.hasSuffix("\"Acme \"\"EV\"\"\",\"\",\"\",\"\""))
+        let headers = csv.components(separatedBy: "\r\n")[0].components(separatedBy: ",")
+        XCTAssertEqual(headers[26], "\"station_brand\"")
+        XCTAssertEqual(Array(headers.suffix(3)), ["\"trip_b_counter_km\"", "\"trip_b_previous_counter_km\"", "\"trip_b_previous_checkpoint_id\""])
     }
 
     func testMonthlyNotificationTriggerHasNextOccurrenceOnFirst() throws {

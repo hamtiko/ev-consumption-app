@@ -21,6 +21,10 @@ final class Checkpoint: JournalRecord {
     var isBaseline: Bool = false
     var tripAText: String?
     var tripBText: String?
+    // The car's raw counter can differ from cycle distance after a missed reset.
+    var tripBCounterText: String? = nil
+    var tripBPreviousCounterText: String? = nil
+    var tripBPreviousCheckpointID: UUID? = nil
     var battery: Int?
     // A combined outside-charge + checkpoint entry stays linked when edited.
     var linkedChargeID: UUID?

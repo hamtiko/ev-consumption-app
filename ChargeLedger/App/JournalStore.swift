@@ -26,14 +26,14 @@ enum SyncRecords {
 }
 
 enum JournalSchema: VersionedSchema {
-    static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
+    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
     static var models: [any PersistentModel.Type] { [Checkpoint.self, OutsideCharge.self, MonthlyMileage.self] }
 }
 
 enum JournalMigration: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [LegacyJournalSchema.self, JournalSchema.self] }
+    static var schemas: [any VersionedSchema.Type] { [LegacyJournalSchema.self, CloudJournalSchemaV2.self, JournalSchema.self] }
     static var stages: [MigrationStage] {
-        [.custom(fromVersion: LegacyJournalSchema.self, toVersion: JournalSchema.self,
+        [.custom(fromVersion: LegacyJournalSchema.self, toVersion: CloudJournalSchemaV2.self,
                  willMigrate: { context in
             // SwiftData supplies the old schema here, before removing local uniqueness constraints.
             let backup = JournalBackup(
@@ -42,7 +42,8 @@ enum JournalMigration: SchemaMigrationPlan {
                 monthlyMileage: try context.fetch(FetchDescriptor<LegacyJournalSchema.MonthlyMileage>()).map(\.backupRecord),
                 meterSettings: BackupStore.meterSettings())
             try BackupStore.writeSafetyCopy(backup, named: "before-icloud-upgrade")
-        }, didMigrate: nil)]
+        }, didMigrate: nil),
+         .lightweight(fromVersion: CloudJournalSchemaV2.self, toVersion: JournalSchema.self)]
     }
 }
 

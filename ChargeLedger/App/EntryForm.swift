@@ -57,6 +57,13 @@ private struct ChargingForm: View {
     @State private var t1 = ""
     @State private var t2 = ""
     @State private var tripB = ""
+    @State private var tripBCalculation: TripBCalculation?
+    @State private var calculationPreviousID: UUID?
+    @State private var tripBCounterKnown = true
+    @State private var rememberedCounter = ""
+    @State private var calculationNeedsReview = false
+    @State private var calculatorRequest: TripBCalculatorRequest?
+    @State private var showingPreviousCycle = false
     @State private var energy = ""
     @State private var cost = ""
     @State private var brand = ""
@@ -88,11 +95,30 @@ private struct ChargingForm: View {
         let latest = Ledger.latestMeterReading(before: date, excludingID: request.checkpoint?.id, readings: checkpoints.map(\.reading))
         return checkpoints.first { $0.id == latest?.id }
     }
-    private var cycleStart: Date? { previousFull?.date ?? checkpoints.first(where: \.isBaseline)?.date }
+    private var cycleStart: Date? { previousFull?.date }
+    private var effectiveCharges: [Charge] {
+        CycleEntryContext.combining(saved: charges.map(\.charge), replacingID: existingSession?.id,
+                                    replacement: outsideCharge, drafts: earlier.compactMap(\.charge))
+    }
+    private var cycleContext: CycleEntryContext {
+        CycleEntryContext(endingAt: date, excludingCheckpointID: request.checkpoint?.id,
+                          readings: checkpoints.map(\.reading), charges: effectiveCharges)
+    }
     private var loggedSessions: [OutsideCharge] {
-        charges.filter { session in
-            session.id != existingSession?.id && session.date <= date && (cycleStart.map { $0 < session.date } ?? true)
+        let start = cycleStart
+        return charges.filter { session in
+            session.id != existingSession?.id && session.date <= date && (start.map { session.date > $0 } ?? true)
         }
+    }
+    private var manualTripB: Binding<String> {
+        Binding(get: { tripB }, set: { tripB = $0; tripBCounterKnown = true; calculationNeedsReview = false })
+    }
+    private var preservingSavedCalculation: Bool {
+        guard let saved = request.checkpoint, let calculation = tripBCalculation else { return false }
+        return date == saved.date && calculationPreviousID == saved.tripBPreviousCheckpointID
+            && calculation.currentCounter == saved.tripBCounterText.flatMap(Numbers.parse)
+            && calculation.previousCounter == saved.tripBPreviousCounterText.flatMap(Numbers.parse)
+            && calculation.distance == saved.tripBText.flatMap(Numbers.parse)
     }
     private var brandChoices: [String] {
         StationBrands.choices(charges.map(\.stationBrand) + earlier.map { Optional($0.brand) })
@@ -104,28 +130,11 @@ private struct ChargingForm: View {
                 Section {
                     DatePicker("Date and time", selection: $date, in: ...Date.now, displayedComponents: [.date, .hourAndMinute])
                 }
-                if isOutside || (request.kind == .cycle && existingSession != nil) {
-                    Section {
-                        DecimalField(title: "Energy added", unit: "kWh", text: $energy, focus: $focused, field: .energy)
-                        DecimalField(title: "Total paid", unit: "AMD", text: $cost, focus: $focused, field: .cost)
-                        StationBrandField(brand: $brand, choices: brandChoices, focus: $focused, field: .brand)
-                        TextField("Station / location (optional)", text: $location)
-                            .inputFocus(.location, focus: $focused)
-                            .id(InputField.location)
-                        if isOutside {
-                            Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil)
-                        }
-                    } footer: {
-                        Text(request.kind == .cycle ? "This saved outside session belongs to this cycle. You can edit its energy and payment here."
-                             : outsideFull ? "Record Trip B below to finish this cycle." : "Save this session now, or add it later when you next reach 100%. Trip B keeps running.")
-                    }
-                }
+                if closesCycle && !isBaseline { previousCycleSection }
+                if isOutside { outsideSessionSection }
                 if closesCycle && !isBaseline {
-                    Section {
-                        DecimalField(title: "Trip B", unit: "km", text: $tripB, focus: $focused, field: .tripB)
-                    } header: { Text("Kilometres since the last 100% charge") } footer: {
-                        Text("Read Trip B before resetting it in your car.")
-                    }
+                    tripBSection
+                    earlierSessionsSection
                 }
                 if request.kind == .cycle {
                     Section {
@@ -142,7 +151,6 @@ private struct ChargingForm: View {
                         Text("Starting readings establish the home meter baseline. If the car is at 100%, save and reset Trip B to start a complete cycle.")
                     }
                 }
-                if closesCycle && !isBaseline { earlierSessionsSection }
                 if let summary = preview {
                     Section("This 100% cycle") {
                         LabeledContent("Distance", value: "\(LedgerStyle.number(summary.distance)) km")
@@ -169,11 +177,123 @@ private struct ChargingForm: View {
             }
             .onAppear(perform: load)
             .onChange(of: date) { _, _ in prefillMeter() }
+            .onChange(of: previousFull?.id) { _, id in
+                if let calculation = tripBCalculation, calculationPreviousID != id, !preservingSavedCalculation {
+                    rememberedCounter = Numbers.string(calculation.currentCounter)
+                    tripBCalculation = nil; calculationPreviousID = nil; tripB = ""
+                    calculationNeedsReview = true
+                }
+            }
+            .sheet(isPresented: $showingPreviousCycle) {
+                if let summary = cycleContext.previousCycle {
+                    CycleReferenceView(summary: summary, sessions: cycleContext.previousCycleSessions,
+                                       counterText: previousFull?.tripBCounterText)
+                }
+            }
+            .sheet(item: $calculatorRequest) { calculator in
+                TripBCalculatorForm(previousDate: calculator.previousDate,
+                                    previousCycleDistance: calculator.previousCycleDistance,
+                                    currentText: calculator.currentText, previousText: calculator.previousText) { calculation in
+                    guard previousFull?.id == calculator.previousID, previousFull?.date == calculator.previousDate else {
+                        calculationNeedsReview = true; return
+                    }
+                    tripBCalculation = calculation; calculationPreviousID = calculator.previousID
+                    tripB = Numbers.string(calculation.distance); calculationNeedsReview = false
+                    rememberedCounter = Numbers.string(calculation.currentCounter)
+                }
+            }
             .alert("Check your entry", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                 Button("OK") { error = nil }
             } message: { Text(error ?? "") }
         }
         .interactiveDismissDisabled()
+    }
+
+    private var previousCycleSection: some View {
+        let context = cycleContext
+        return Section {
+            if let previous = previousFull {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let summary = context.previousCycle {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("\(LedgerStyle.number(summary.distance, digits: 2)) km").font(.title2.weight(.semibold))
+                                Text("\(summary.start.formatted(date: .abbreviated, time: .omitted)) – \(summary.end.formatted(date: .abbreviated, time: .omitted))")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("View cycle") { focused = nil; showingPreviousCycle = true }
+                                .buttonStyle(.borderless)
+                        }
+                    } else {
+                        Text("Your first 100% checkpoint").font(.headline)
+                    }
+                    Text("Last 100%: \(previous.date.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    if let counter = previous.tripBCounterText {
+                        Text("Car Trip B at that charge: \(counter) km").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                Text("No previous 100% charge. This entry starts your first cycle.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+        } header: { Text("Previous cycle") }
+    }
+
+    private var tripBSection: some View {
+        Section {
+            if let calculation = tripBCalculation {
+                LabeledContent("Trip B · this cycle", value: "\(LedgerStyle.number(calculation.distance, digits: 2)) km")
+                Text("Calculated: \(Numbers.string(calculation.currentCounter)) − \(Numbers.string(calculation.previousCounter)) km")
+                    .font(.caption).foregroundStyle(.secondary)
+                if previousFull != nil { Button("Edit calculation", action: openCalculator).buttonStyle(.borderless) }
+                if calculationPreviousID != previousFull?.id {
+                    Text("This saved calculation refers to an earlier checkpoint that has changed or was removed.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Button("Enter Trip B directly") {
+                    tripBCalculation = nil; calculationPreviousID = nil; tripB = ""
+                    tripBCounterKnown = true; calculationNeedsReview = false; rememberedCounter = ""
+                    focused = .tripB
+                }
+                .buttonStyle(.borderless)
+            } else {
+                DecimalField(title: "Trip B", unit: "km", text: manualTripB, focus: $focused, field: .tripB)
+                if previousFull != nil { Button("Forgot to reset Trip B?", action: openCalculator).buttonStyle(.borderless) }
+            }
+            if calculationNeedsReview {
+                Text("The previous 100% charge changed. Check Trip B or calculate the distance again.")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+        } header: { Text("Kilometres since the last 100% charge") } footer: {
+            Text(tripBCalculation == nil ? "Read Trip B before resetting it in your car. If it kept running after the last 100% charge, use the calculator."
+                 : "Only the calculated distance is used in reports. The actual counter is kept for reference. Reset Trip B after saving.")
+        }
+    }
+
+    private func openCalculator() {
+        guard let previous = previousFull else { return }
+        focused = nil
+        calculatorRequest = TripBCalculatorRequest(previousID: previous.id, previousDate: previous.date,
+            previousCycleDistance: cycleContext.previousCycle?.distance,
+            currentText: tripBCalculation.map { Numbers.string($0.currentCounter) }
+                ?? (tripBCounterKnown && !tripB.isEmpty ? tripB : rememberedCounter),
+            previousText: tripBCalculation.map { Numbers.string($0.previousCounter) } ?? previous.tripBCounterText ?? "")
+    }
+
+    private var outsideSessionSection: some View {
+        Section {
+            DecimalField(title: "Energy added", unit: "kWh", text: $energy, focus: $focused, field: .energy)
+            DecimalField(title: "Total paid", unit: "AMD", text: $cost, focus: $focused, field: .cost)
+            StationBrandField(brand: $brand, choices: brandChoices, focus: $focused, field: .brand)
+            TextField("Station / location (optional)", text: $location)
+                .inputFocus(.location, focus: $focused).id(InputField.location)
+            if isOutside { Toggle("Charged to 100%", isOn: $outsideFull).disabled(request.checkpoint != nil) }
+        } header: { Text(existingSession == nil ? "Outside session" : "Outside session · editing saved entry") } footer: {
+            Text(request.kind == .cycle ? "This saved session is included once in this cycle’s outside total."
+                 : outsideFull ? "Record Trip B below to finish this cycle." : "Save this session now, or add it later when you next reach 100%. Trip B keeps running.")
+        }
     }
 
     private var homeMeterSection: some View {
@@ -202,29 +322,42 @@ private struct ChargingForm: View {
     }
 
     @ViewBuilder private var earlierSessionsSection: some View {
-        if !loggedSessions.isEmpty {
-            Section {
-                ForEach(loggedSessions) { session in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(session.energyText) kWh · \(session.costText) AMD")
-                        if let brand = session.stationBrand { Text(brand).font(.caption).foregroundStyle(.secondary) }
-                        Text("Already saved · \(session.date.formatted(date: .abbreviated, time: .shortened))")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                if isOutside && existingSession == nil {
-                    Menu("Use a saved session as this 100% charge") {
-                        ForEach(loggedSessions) { session in
-                            Button("\(session.date.formatted(date: .abbreviated, time: .shortened)) · \(session.energyText) kWh") {
-                                selectedSessionID = session.id; date = session.date
-                                energy = session.energyText; cost = session.costText
-                                brand = session.stationBrand ?? ""; location = session.location
-                            }
+        let context = cycleContext
+        Section {
+            if let start = context.start {
+                Text("\(start.formatted(date: .abbreviated, time: .shortened)) → \(date.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("Sessions recorded up to \(date.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if context.outsideSessions.isEmpty {
+                Text("No outside sessions recorded in this interval.").font(.subheadline).foregroundStyle(.secondary)
+            } else {
+                Text("\(context.outsideSessions.count) sessions · \(LedgerStyle.number(context.outsideEnergy, digits: 2)) kWh · \(LedgerStyle.number(context.outsideCost, digits: 2)) AMD")
+                    .font(.subheadline.weight(.semibold))
+            }
+            ForEach(loggedSessions) { session in CycleOutsideSessionRow(session: session.charge, status: "Saved") }
+            if isOutside && existingSession == nil && !loggedSessions.isEmpty {
+                Menu("Use a saved session as this 100% charge") {
+                    ForEach(loggedSessions) { session in
+                        Button("\(session.date.formatted(date: .abbreviated, time: .shortened)) · \(session.energyText) kWh") {
+                            selectedSessionID = session.id; date = session.date
+                            energy = session.energyText; cost = session.costText
+                            brand = session.stationBrand ?? ""; location = session.location
                         }
                     }
                 }
-            } header: { Text("Outside sessions already saved") }
+            }
+            Button {
+                focused = nil
+                earlier.append(SessionDraft(date: date))
+            } label: { Label("Add outside session", systemImage: "plus") }
+            .buttonStyle(.borderless)
+        } header: { Text("Outside charging this cycle") } footer: {
+            Text("Saved sessions are included automatically. Totals also include completed sessions entered below, within this interval.")
         }
+        if !isOutside && existingSession != nil { outsideSessionSection }
         ForEach($earlier) { $session in
             // Separate Form rows let ScrollViewReader reveal the actual input, even when
             // this session's full card is taller than the viewport above the keyboard.
@@ -246,16 +379,16 @@ private struct ChargingForm: View {
                 }
                 .buttonStyle(.borderless)
             } header: {
-                Text("Outside session \((earlier.firstIndex(where: { $0.id == session.id }) ?? 0) + 1)")
+                Text("New outside session \((earlier.firstIndex(where: { $0.id == session.id }) ?? 0) + 1)")
+            } footer: {
+                if session.charge == nil {
+                    Text("Complete energy and price to include this session in the total.")
+                } else if !context.contains(session.date) {
+                    Text("This date is outside the selected cycle. Update it before saving.").foregroundStyle(.orange)
+                } else {
+                    Text("Included in this entry’s outside total. Saved when you save the cycle.")
+                }
             }
-        }
-        Section {
-            Button {
-                focused = nil
-                earlier.append(SessionDraft(date: date))
-            } label: { Label("Add outside session", systemImage: "plus") }
-        } footer: {
-            Text("Add the final outside charge and any partial outside charges in this cycle. Set each session’s date, kWh and amount paid. Already saved sessions are included automatically. Home partial charges need no entry.")
         }
     }
 
@@ -265,6 +398,14 @@ private struct ChargingForm: View {
         rate = defaultRate; rateT1 = defaultT1; rateT2 = defaultT2
         if let saved = request.checkpoint {
             recordID = saved.id; date = saved.date; tripB = saved.tripBText ?? ""
+            tripBCounterKnown = saved.tripBCounterText != nil && saved.tripBPreviousCounterText == nil
+            rememberedCounter = saved.tripBCounterText ?? ""
+            if let current = saved.tripBCounterText, let previous = saved.tripBPreviousCounterText,
+               let previousID = saved.tripBPreviousCheckpointID,
+               let calculation = try? TripBCalculation(currentText: current, previousText: previous),
+               calculation.distance == Numbers.parse(tripB) {
+                tripBCalculation = calculation; calculationPreviousID = previousID
+            }
             outsideFull = isOutside && saved.closesCycle; baselineAt100 = saved.closesCycle
             singleMeter = saved.meterTotalText != nil; meter = saved.meterTotalText ?? ""
             pricingWithTariffs = saved.useTariffRates
@@ -327,10 +468,7 @@ private struct ChargingForm: View {
               Ledger.validate(candidate, against: checkpoints.map(\.reading)) == nil,
               earlier.allSatisfy({ $0.charge != nil }) else { return nil }
         let readings = checkpoints.map(\.reading).filter { $0.id != candidate.id } + [candidate]
-        var outside = charges.map(\.charge).filter { $0.id != outsideCharge?.id }
-        if let charge = outsideCharge { outside.append(charge) }
-        outside += earlier.compactMap(\.charge)
-        return Ledger.cycles(readings: readings, charges: outside).first { $0.id == candidate.id }
+        return Ledger.cycles(readings: readings, charges: effectiveCharges).first { $0.id == candidate.id }
     }
 
     private func save() {
@@ -338,7 +476,13 @@ private struct ChargingForm: View {
         if (isOutside || (request.kind == .cycle && existingSession != nil)) && outsideCharge == nil {
             error = "Enter charging energy and the total price (0 for free)."; return
         }
-        if closesCycle && !isBaseline && Numbers.parse(tripB) == nil { error = "Enter the kilometres shown on Trip B."; return }
+        if closesCycle && !isBaseline && Numbers.parse(tripB) == nil { error = "Enter Trip B or use the distance calculator."; return }
+        if closesCycle && !isBaseline && calculationNeedsReview {
+            error = "The previous 100% charge changed. Check Trip B or calculate the distance again."; return
+        }
+        if closesCycle && !isBaseline && tripBCalculation != nil && calculationPreviousID != previousFull?.id && !preservingSavedCalculation {
+            error = "The previous 100% charge changed. Calculate the distance again."; return
+        }
         if !isOutside || closesCycle {
             guard let candidate = reading else { error = "Enter the meter counter and valid prices."; return }
             if let message = Ledger.validate(candidate, against: checkpoints.map(\.reading)) { error = message; return }
@@ -366,6 +510,12 @@ private struct ChargingForm: View {
                 let saved: Checkpoint
                 if let existing = request.checkpoint { existing.update(with: candidate); saved = existing }
                 else { saved = Checkpoint(reading: candidate); context.insert(saved) }
+                if closesCycle && !isBaseline {
+                    saved.tripBCounterText = tripBCalculation.map { Numbers.string($0.currentCounter) }
+                        ?? (tripBCounterKnown ? Numbers.parse(tripB).map(Numbers.string) : nil)
+                    saved.tripBPreviousCounterText = tripBCalculation.map { Numbers.string($0.previousCounter) }
+                    saved.tripBPreviousCheckpointID = tripBCalculation == nil ? nil : calculationPreviousID
+                }
                 saved.endedOutside = request.checkpoint?.endedOutside ?? (isOutside || !hasHomeData)
                 let sameMeter = previousHomeData.map {
                     $0.hasMeterReading && $0.t1 == candidate.t1 && $0.t2 == candidate.t2 && $0.meterTotal == candidate.meterTotal

@@ -15,7 +15,7 @@ For a simulator/local-only build without iCloud signing, remove the iCloud/push 
 
 ## What syncs
 
-- Meter readings, 100% cycles, Trip A/B distances, individual saved prices, home-data completion status/timestamps, outside charging sessions, brands and locations.
+- Meter readings, 100% cycles, Trip A/B distances, actual Trip B counter readings and calculation references, individual saved prices, home-data completion status/timestamps, outside charging sessions, brands and locations.
 - Reports are recalculated from those records on each device.
 - Changes and deletions propagate. Sync is eventually consistent and can be delayed by connectivity, iCloud quota, account access, and iOS background scheduling.
 - Meter defaults and monthly notification preferences stay on each device. JSON backups include meter defaults, with an explicit option to restore them. Reminder permission and scheduling are not restored or synced.
@@ -28,6 +28,8 @@ The versioned migration includes the last local-only schema. Before changing tha
 
 The native migration test constructs an unversioned pre-iCloud store and checks all three entity types after upgrade. This test and a real installed-app upgrade **must still be run in Xcode**; the Linux development environment cannot validate SwiftData migration or live CloudKit transfers. Older historical schema variants should also be checked against an actual retained store before updating those installations.
 
+The cycle-context update uses schema version 3, with the first CloudKit schema frozen as version 2 in `CloudJournalSchemaV2.swift`. The version 1 → 2 stage retains the original pre-iCloud safety copy; version 2 → 3 adds nullable `tripBCounterText`, `tripBPreviousCounterText` and `tripBPreviousCheckpointID` attributes. Existing normalized Trip B distances are preserved without fabricating raw counters. A new native test covers upgrading a version 2 store while retaining IDs, price/link data, revision metadata and unknown raw counters. Deploy the additional CloudKit fields from development to production before distributing this update. Native migration and signed live sync still require Xcode/device verification.
+
 ## Export/import through Files, including OneDrive
 
 Choose **Settings → Your data → Export backup**. Save the JSON file to iCloud Drive, OneDrive, or another Files provider. To use OneDrive, install/sign in to its iOS app and enable its location in Files. These are manual backup copies; OneDrive is not a second automatic synchronization engine. No Microsoft API credentials or SDK are required.
@@ -36,6 +38,6 @@ Choose **Settings → Your data → Export backup**. Save the JSON file to iClou
 
 Import is a merge, not a replacement or an undo of newer edits. A backup from before an entry was deleted can restore that missing entry. To recover the exact snapshot independently of an existing journal, restore it into an empty installation. Avoid importing on a second device while its first iCloud download is still pending.
 
-Version 1 JSON preserves raw decimal text, optional versus zero mileage, record IDs/links, dates, meter formats, per-record prices, legacy partial Trip B values, pending/entered/unchanged home metadata, brands and locations. Dates use Foundation JSON's seconds since 2001-01-01 UTC, retaining subsecond precision. Import accepts files up to 20 MB. CSV remains available for spreadsheet analysis and is not an import format.
+Version 2 JSON preserves raw decimal text, optional versus zero mileage, record IDs/links, dates, meter formats, per-record prices, legacy partial Trip B values, actual Trip B counters and calculation references, pending/entered/unchanged home metadata, brands and locations. Version 1 backups remain importable with actual counters unknown. Inconsistent counter arithmetic is rejected before import. Older app releases cannot import version 2 files; update the app before restoring them. Dates use Foundation JSON's seconds since 2001-01-01 UTC, retaining subsecond precision. Import accepts files up to 20 MB. CSV remains available for spreadsheet analysis and is not an import format; the three new counter columns are appended without moving the existing brand column.
 
 Keep independent backup files: deleting a record on one synced device will also delete it from iCloud and other devices. Local safety copies live in the app sandbox and disappear if the app is uninstalled unless exported first.

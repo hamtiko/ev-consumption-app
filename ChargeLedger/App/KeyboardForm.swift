@@ -4,6 +4,7 @@ import UIKit
 enum InputField: Hashable {
     case meter, t1, t2, tripA, tripB, energy, cost, brand, location, homePrice, t1Price, t2Price, brandSearch
     case sessionEnergy(UUID), sessionCost(UUID), sessionBrand(UUID), sessionLocation(UUID)
+    case tripBCounter, tripBPreviousCounter
 }
 
 private struct DismissFormKeyboardKey: EnvironmentKey {

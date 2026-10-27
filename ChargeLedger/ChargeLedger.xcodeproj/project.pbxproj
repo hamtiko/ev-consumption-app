@@ -35,6 +35,16 @@
 			isa = "PBXBuildFile";
 			fileRef = "C62C71BF1783C48D413307B3";
 		};
+		3F7DAE13826FDB8287E3E40F = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "CloudJournalSchemaV2.swift";
+			sourceTree = "<group>";
+		};
+		2525A9C997D067144421E908 = {
+			isa = "PBXBuildFile";
+			fileRef = "3F7DAE13826FDB8287E3E40F";
+		};
 		B2D3F77DDEB0B5817BD10D75 = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "sourcecode.swift";
@@ -44,6 +54,16 @@
 		1575EF101CB6309545BDCA3E = {
 			isa = "PBXBuildFile";
 			fileRef = "B2D3F77DDEB0B5817BD10D75";
+		};
+		73B3E9D1712D79D48C3DD07B = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "CycleReferenceView.swift";
+			sourceTree = "<group>";
+		};
+		BF096D6EF7F8178F73AF8683 = {
+			isa = "PBXBuildFile";
+			fileRef = "73B3E9D1712D79D48C3DD07B";
 		};
 		22BD46BB2BC9C1CB2A2863AD = {
 			isa = "PBXFileReference";
@@ -205,6 +225,16 @@
 			isa = "PBXBuildFile";
 			fileRef = "1711E5981A8436B2ADB545A3";
 		};
+		315358817EF619D36BC1C9B8 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "TripBCalculatorForm.swift";
+			sourceTree = "<group>";
+		};
+		9668794CCAB5FEFFB4778FBE = {
+			isa = "PBXBuildFile";
+			fileRef = "315358817EF619D36BC1C9B8";
+		};
 		8BF729FFE074CAEE622C0292 = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "folder.assetcatalog";
@@ -233,7 +263,9 @@
 				"B8FA62C3D1E5D1E0CAC1989B",
 				"180AF0EA040BFD8CE19D0C11",
 				"C62C71BF1783C48D413307B3",
+				"3F7DAE13826FDB8287E3E40F",
 				"B2D3F77DDEB0B5817BD10D75",
+				"73B3E9D1712D79D48C3DD07B",
 				"22BD46BB2BC9C1CB2A2863AD",
 				"A8DB1D7FEE0EACB41AC46E41",
 				"3D7F62115A78ACB8949F69FE",
@@ -250,6 +282,7 @@
 				"03AF56BE2C9FDF9DEFBDE818",
 				"C6CB267909CE4CAA294B787D",
 				"1711E5981A8436B2ADB545A3",
+				"315358817EF619D36BC1C9B8",
 				"8BF729FFE074CAEE622C0292",
 				"8873151C067A966D8A2B0623",
 				"B116A34B1D96DB165026BBD4",
@@ -276,6 +309,16 @@
 		5D5B9A80DA6C341A08484DB5 = {
 			isa = "PBXBuildFile";
 			fileRef = "24F6FD9D58FDF89223E8CFA6";
+		};
+		439E13E0A9ADAE62E2CDFB2F = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Core/Tests/ChargeLedgerCoreTests/CycleEntryContextTests.swift";
+			sourceTree = "SOURCE_ROOT";
+		};
+		068068DEBBEA80806D3AEE93 = {
+			isa = "PBXBuildFile";
+			fileRef = "439E13E0A9ADAE62E2CDFB2F";
 		};
 		5DED2FBFB3079BCD78C1443F = {
 			isa = "PBXFileReference";
@@ -312,6 +355,7 @@
 			children = (
 				"4CC88557ECD433986EC3186C",
 				"24F6FD9D58FDF89223E8CFA6",
+				"439E13E0A9ADAE62E2CDFB2F",
 				"5DED2FBFB3079BCD78C1443F",
 				"21606B234947BB4DB2C9E1D5",
 				"B70762D45B9B237063141D3A",
@@ -382,7 +426,9 @@
 				"747968A7FD765B6A29D662BB",
 				"BF287A98F2578C1A41548AA0",
 				"1F2F48CC99FD1A8510A890B5",
+				"2525A9C997D067144421E908",
 				"1575EF101CB6309545BDCA3E",
+				"BF096D6EF7F8178F73AF8683",
 				"471CCBCD216FCA13E1D3B85A",
 				"601ED318F83E997A11963558",
 				"119760AEAE6C19D9961FF1D2",
@@ -399,6 +445,7 @@
 				"D2740EFD5804A93FE8C32426",
 				"DDCEFD51A2ED02EA6676E27D",
 				"DE2EB8F42DADE8A886AB1E5F",
+				"9668794CCAB5FEFFB4778FBE",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -408,6 +455,7 @@
 			files = (
 				"C18085A17A2B41A4DD477E2A",
 				"5D5B9A80DA6C341A08484DB5",
+				"068068DEBBEA80806D3AEE93",
 				"2F59F75E43CEC2155CEC0439",
 				"377AC052A904A3BE223B8D46",
 				"46DE00645BCC0C1AF20409DE",

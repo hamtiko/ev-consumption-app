@@ -18,6 +18,9 @@ extension Checkpoint {
             isBaseline: isBaseline,
             tripAText: tripAText,
             tripBText: tripBText,
+            tripBCounterText: tripBCounterText,
+            tripBPreviousCounterText: tripBPreviousCounterText,
+            tripBPreviousCheckpointID: tripBPreviousCheckpointID,
             battery: battery,
             linkedChargeID: linkedChargeID,
             hasMeterReading: hasMeterReading,
@@ -50,6 +53,9 @@ extension Checkpoint {
         isBaseline = backup.isBaseline
         tripAText = backup.tripAText
         tripBText = backup.tripBText
+        tripBCounterText = backup.tripBCounterText
+        tripBPreviousCounterText = backup.tripBPreviousCounterText
+        tripBPreviousCheckpointID = backup.tripBPreviousCheckpointID
         battery = backup.battery
         linkedChargeID = backup.linkedChargeID
         hasMeterReading = backup.hasMeterReading
