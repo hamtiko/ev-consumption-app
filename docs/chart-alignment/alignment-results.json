@@ -1,0 +1,1115 @@
+[
+  {
+    "screenshot": "after-narrow-single-AMD-large.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.0,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 293.25,
+          "height": 67.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 259.5
+        },
+        "barCenterY": 293.25,
+        "centerErrorPoints": 0.0
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-source-default.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.25,
+    "labels": [
+      {
+        "id": "label:Home",
+        "labelFrame": {
+          "centerY": 217,
+          "height": 14.5,
+          "width": 60,
+          "x": 36,
+          "y": 209.75
+        },
+        "barCenterY": 216.75,
+        "centerErrorPoints": 0.25
+      },
+      {
+        "id": "label:Outside",
+        "labelFrame": {
+          "centerY": 274,
+          "height": 14.5,
+          "width": 60,
+          "x": 36,
+          "y": 266.75
+        },
+        "barCenterY": 273.75,
+        "centerErrorPoints": 0.25
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-source-large.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.375,
+    "labels": [
+      {
+        "id": "label:Home",
+        "labelFrame": {
+          "centerY": 240.625,
+          "height": 21.5,
+          "width": 86.5,
+          "x": 36,
+          "y": 229.875
+        },
+        "barCenterY": 240.25,
+        "centerErrorPoints": 0.375
+      },
+      {
+        "id": "label:Outside",
+        "labelFrame": {
+          "centerY": 326.875,
+          "height": 21.5,
+          "width": 86.5,
+          "x": 36,
+          "y": 316.125
+        },
+        "barCenterY": 326.5,
+        "centerErrorPoints": 0.375
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-stations-AMD-default.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.5,
+    "labels": [
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 262.75,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 255.5
+        },
+        "barCenterY": 262.25,
+        "centerErrorPoints": 0.5
+      },
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 317.25,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 310
+        },
+        "barCenterY": 317.25,
+        "centerErrorPoints": 0.0
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 371.75,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 364.5
+        },
+        "barCenterY": 371.25,
+        "centerErrorPoints": 0.5
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 426.25,
+          "height": 46.5,
+          "width": 90,
+          "x": 36,
+          "y": 403
+        },
+        "barCenterY": 426.0,
+        "centerErrorPoints": 0.25
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-stations-AMD-large.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.4375,
+    "labels": [
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 284.8125,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 274.0625
+        },
+        "barCenterY": 284.5,
+        "centerErrorPoints": 0.3125
+      },
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 365.4375,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 354.6875
+        },
+        "barCenterY": 365.25,
+        "centerErrorPoints": 0.1875
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 446.0625,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 435.3125
+        },
+        "barCenterY": 445.75,
+        "centerErrorPoints": 0.3125
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 526.6875,
+          "height": 67.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 492.9375
+        },
+        "barCenterY": 526.25,
+        "centerErrorPoints": 0.4375
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-stations-Sessions-default.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.5,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 262.75,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 255.5
+        },
+        "barCenterY": 262.25,
+        "centerErrorPoints": 0.5
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 317.25,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 310
+        },
+        "barCenterY": 317.25,
+        "centerErrorPoints": 0.0
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 371.75,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 364.5
+        },
+        "barCenterY": 371.25,
+        "centerErrorPoints": 0.5
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 426.25,
+          "height": 46.5,
+          "width": 90,
+          "x": 36,
+          "y": 403
+        },
+        "barCenterY": 426.25,
+        "centerErrorPoints": 0.0
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-stations-Sessions-large.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.4375,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 284.8125,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 274.0625
+        },
+        "barCenterY": 284.5,
+        "centerErrorPoints": 0.3125
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 365.4375,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 354.6875
+        },
+        "barCenterY": 365.25,
+        "centerErrorPoints": 0.1875
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 446.0625,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 435.3125
+        },
+        "barCenterY": 445.75,
+        "centerErrorPoints": 0.3125
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 526.6875,
+          "height": 67.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 492.9375
+        },
+        "barCenterY": 526.25,
+        "centerErrorPoints": 0.4375
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-stations-kWh-default.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.5,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 262.75,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 255.5
+        },
+        "barCenterY": 262.25,
+        "centerErrorPoints": 0.5
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 317.25,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 310
+        },
+        "barCenterY": 317.25,
+        "centerErrorPoints": 0.0
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 371.75,
+          "height": 14.5,
+          "width": 90,
+          "x": 36,
+          "y": 364.5
+        },
+        "barCenterY": 371.25,
+        "centerErrorPoints": 0.5
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 426.25,
+          "height": 46.5,
+          "width": 90,
+          "x": 36,
+          "y": 403
+        },
+        "barCenterY": 426.25,
+        "centerErrorPoints": 0.0
+      }
+    ]
+  },
+  {
+    "screenshot": "after-narrow-stations-kWh-large.png",
+    "scale": 2,
+    "maxCenterErrorPoints": 0.4375,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 284.8125,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 274.0625
+        },
+        "barCenterY": 284.5,
+        "centerErrorPoints": 0.3125
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 365.4375,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 354.6875
+        },
+        "barCenterY": 365.25,
+        "centerErrorPoints": 0.1875
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 446.0625,
+          "height": 21.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 435.3125
+        },
+        "barCenterY": 445.75,
+        "centerErrorPoints": 0.3125
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 526.6875,
+          "height": 67.5,
+          "width": 103.02000000000001,
+          "x": 35.97999999999999,
+          "y": 492.9375
+        },
+        "barCenterY": 526.25,
+        "centerErrorPoints": 0.4375
+      }
+    ]
+  },
+  {
+    "screenshot": "after-single-AMD-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666662877,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 303.3333333333333,
+          "height": 46.33333333333337,
+          "width": 90,
+          "x": 36,
+          "y": 280.16666666666663
+        },
+        "barCenterY": 303.1666666666667,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-single-AMD-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666662877,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 330.16666666666663,
+          "height": 67.66666666666669,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 296.33333333333326
+        },
+        "barCenterY": 330.0,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-single-Sessions-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666662877,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 303.3333333333333,
+          "height": 46.33333333333337,
+          "width": 90,
+          "x": 36,
+          "y": 280.16666666666663
+        },
+        "barCenterY": 303.1666666666667,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-single-Sessions-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666662877,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 330.16666666666663,
+          "height": 67.66666666666669,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 296.33333333333326
+        },
+        "barCenterY": 330.0,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-single-kWh-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666662877,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 303.3333333333333,
+          "height": 46.33333333333337,
+          "width": 90,
+          "x": 36,
+          "y": 280.16666666666663
+        },
+        "barCenterY": 303.1666666666667,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-single-kWh-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666662877,
+    "labels": [
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 330.16666666666663,
+          "height": 67.66666666666669,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 296.33333333333326
+        },
+        "barCenterY": 330.0,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-source-accessibility.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.16666666666668561,
+    "labels": [
+      {
+        "id": "label:Home",
+        "labelFrame": {
+          "centerY": 295,
+          "height": 26.333333333333314,
+          "width": 101.33333333333333,
+          "x": 35.999999999999986,
+          "y": 281.8333333333333
+        },
+        "barCenterY": 295.0,
+        "centerErrorPoints": 0.0
+      },
+      {
+        "id": "label:Outside",
+        "labelFrame": {
+          "centerY": 395.6666666666667,
+          "height": 26.33333333333337,
+          "width": 101.33333333333333,
+          "x": 35.999999999999986,
+          "y": 382.5
+        },
+        "barCenterY": 395.5,
+        "centerErrorPoints": 0.16666666666668561
+      }
+    ]
+  },
+  {
+    "screenshot": "after-source-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.1666666666666572,
+    "labels": [
+      {
+        "id": "label:Home",
+        "labelFrame": {
+          "centerY": 253.83333333333331,
+          "height": 14.333333333333343,
+          "width": 60,
+          "x": 36,
+          "y": 246.66666666666666
+        },
+        "barCenterY": 253.66666666666666,
+        "centerErrorPoints": 0.1666666666666572
+      },
+      {
+        "id": "label:Outside",
+        "labelFrame": {
+          "centerY": 310.8333333333333,
+          "height": 14.333333333333371,
+          "width": 60,
+          "x": 36,
+          "y": 303.66666666666663
+        },
+        "barCenterY": 310.6666666666667,
+        "centerErrorPoints": 0.16666666666662877
+      }
+    ]
+  },
+  {
+    "screenshot": "after-source-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.24999999999994316,
+    "labels": [
+      {
+        "id": "label:Home",
+        "labelFrame": {
+          "centerY": 277.5833333333333,
+          "height": 21.66666666666663,
+          "width": 86.33333333333333,
+          "x": 35.999999999999986,
+          "y": 266.75
+        },
+        "barCenterY": 277.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:Outside",
+        "labelFrame": {
+          "centerY": 363.41666666666663,
+          "height": 21.666666666666686,
+          "width": 86.33333333333333,
+          "x": 35.999999999999986,
+          "y": 352.5833333333333
+        },
+        "barCenterY": 363.1666666666667,
+        "centerErrorPoints": 0.24999999999994316
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-AMD-accessibility.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.25,
+    "labels": [
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 372.74999999999994,
+          "height": 26.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 359.58333333333326
+        },
+        "barCenterY": 372.5,
+        "centerErrorPoints": 0.24999999999994316
+      },
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 466.91666666666663,
+          "height": 53.333333333333314,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 440.25
+        },
+        "barCenterY": 466.6666666666667,
+        "centerErrorPoints": 0.24999999999994316
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 561.0833333333333,
+          "height": 26.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 547.9166666666666
+        },
+        "barCenterY": 561.0,
+        "centerErrorPoints": 0.08333333333325754
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 655.25,
+          "height": 80.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 615.0833333333333
+        },
+        "barCenterY": 655.0,
+        "centerErrorPoints": 0.25
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-AMD-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.25,
+    "labels": [
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 299.5833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 292.41666666666663
+        },
+        "barCenterY": 299.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 354.0833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 346.91666666666663
+        },
+        "barCenterY": 353.8333333333333,
+        "centerErrorPoints": 0.25
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 408.5833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 401.41666666666663
+        },
+        "barCenterY": 408.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 463.08333333333326,
+          "height": 46.333333333333314,
+          "width": 90,
+          "x": 36,
+          "y": 439.91666666666663
+        },
+        "barCenterY": 462.8333333333333,
+        "centerErrorPoints": 0.24999999999994316
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-AMD-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.29166666666662877,
+    "labels": [
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 321.79166666666663,
+          "height": 21.666666666666686,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 310.95833333333326
+        },
+        "barCenterY": 321.5,
+        "centerErrorPoints": 0.29166666666662877
+      },
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 402.0416666666666,
+          "height": 21.66666666666663,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 391.20833333333326
+        },
+        "barCenterY": 401.8333333333333,
+        "centerErrorPoints": 0.20833333333325754
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 482.29166666666663,
+          "height": 21.666666666666686,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 471.45833333333326
+        },
+        "barCenterY": 482.1666666666667,
+        "centerErrorPoints": 0.12499999999994316
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 562.5416666666665,
+          "height": 67.66666666666663,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 528.7083333333333
+        },
+        "barCenterY": 562.3333333333334,
+        "centerErrorPoints": 0.20833333333314386
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-Sessions-accessibility.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.24999999999994316,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 372.74999999999994,
+          "height": 53.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 346.08333333333326
+        },
+        "barCenterY": 372.5,
+        "centerErrorPoints": 0.24999999999994316
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 466.91666666666663,
+          "height": 26.333333333333314,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 453.75
+        },
+        "barCenterY": 466.6666666666667,
+        "centerErrorPoints": 0.24999999999994316
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 561.0833333333333,
+          "height": 26.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 547.9166666666666
+        },
+        "barCenterY": 561.0,
+        "centerErrorPoints": 0.08333333333325754
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 655.25,
+          "height": 80.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 615.0833333333333
+        },
+        "barCenterY": 655.1666666666666,
+        "centerErrorPoints": 0.08333333333337123
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-Sessions-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.25,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 299.5833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 292.41666666666663
+        },
+        "barCenterY": 299.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 354.0833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 346.91666666666663
+        },
+        "barCenterY": 353.8333333333333,
+        "centerErrorPoints": 0.25
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 408.5833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 401.41666666666663
+        },
+        "barCenterY": 408.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 463.08333333333326,
+          "height": 46.333333333333314,
+          "width": 90,
+          "x": 36,
+          "y": 439.91666666666663
+        },
+        "barCenterY": 462.8333333333333,
+        "centerErrorPoints": 0.24999999999994316
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-Sessions-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.29166666666662877,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 321.79166666666663,
+          "height": 21.666666666666686,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 310.95833333333326
+        },
+        "barCenterY": 321.5,
+        "centerErrorPoints": 0.29166666666662877
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 402.0416666666666,
+          "height": 21.66666666666663,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 391.20833333333326
+        },
+        "barCenterY": 401.8333333333333,
+        "centerErrorPoints": 0.20833333333325754
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 482.29166666666663,
+          "height": 21.666666666666686,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 471.45833333333326
+        },
+        "barCenterY": 482.1666666666667,
+        "centerErrorPoints": 0.12499999999994316
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 562.5416666666665,
+          "height": 67.66666666666663,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 528.7083333333333
+        },
+        "barCenterY": 562.3333333333334,
+        "centerErrorPoints": 0.20833333333314386
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-kWh-accessibility.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.24999999999994316,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 372.74999999999994,
+          "height": 53.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 346.08333333333326
+        },
+        "barCenterY": 372.5,
+        "centerErrorPoints": 0.24999999999994316
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 466.91666666666663,
+          "height": 26.333333333333314,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 453.75
+        },
+        "barCenterY": 466.6666666666667,
+        "centerErrorPoints": 0.24999999999994316
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 561.0833333333333,
+          "height": 26.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 547.9166666666666
+        },
+        "barCenterY": 561.0,
+        "centerErrorPoints": 0.08333333333325754
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 655.25,
+          "height": 80.33333333333337,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 615.0833333333333
+        },
+        "barCenterY": 655.1666666666666,
+        "centerErrorPoints": 0.08333333333337123
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-kWh-default.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.25,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 299.5833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 292.41666666666663
+        },
+        "barCenterY": 299.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 354.0833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 346.91666666666663
+        },
+        "barCenterY": 353.8333333333333,
+        "centerErrorPoints": 0.25
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 408.5833333333333,
+          "height": 14.333333333333371,
+          "width": 90,
+          "x": 36,
+          "y": 401.41666666666663
+        },
+        "barCenterY": 408.5,
+        "centerErrorPoints": 0.08333333333331439
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 463.08333333333326,
+          "height": 46.333333333333314,
+          "width": 90,
+          "x": 36,
+          "y": 439.91666666666663
+        },
+        "barCenterY": 462.8333333333333,
+        "centerErrorPoints": 0.24999999999994316
+      }
+    ]
+  },
+  {
+    "screenshot": "after-stations-kWh-large.png",
+    "scale": 3,
+    "maxCenterErrorPoints": 0.29166666666662877,
+    "labels": [
+      {
+        "id": "label:unspecified",
+        "labelFrame": {
+          "centerY": 321.79166666666663,
+          "height": 21.666666666666686,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 310.95833333333326
+        },
+        "barCenterY": 321.5,
+        "centerErrorPoints": 0.29166666666662877
+      },
+      {
+        "id": "label:brand:icharge",
+        "labelFrame": {
+          "centerY": 402.0416666666666,
+          "height": 21.66666666666663,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 391.20833333333326
+        },
+        "barCenterY": 401.8333333333333,
+        "centerErrorPoints": 0.20833333333325754
+      },
+      {
+        "id": "label:brand:evan",
+        "labelFrame": {
+          "centerY": 482.29166666666663,
+          "height": 21.666666666666686,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 471.45833333333326
+        },
+        "barCenterY": 482.1666666666667,
+        "centerErrorPoints": 0.12499999999994316
+      },
+      {
+        "id": "label:brand:long station name downtown",
+        "labelFrame": {
+          "centerY": 562.5416666666665,
+          "height": 67.66666666666663,
+          "width": 108.12,
+          "x": 35.879999999999995,
+          "y": 528.7083333333333
+        },
+        "barCenterY": 562.3333333333334,
+        "centerErrorPoints": 0.20833333333314386
+      }
+    ]
+  }
+]

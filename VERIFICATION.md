@@ -1,6 +1,8 @@
 # Verification
 
-November 13 horizontal chart labels: station comparison and Home versus outside now explicitly use leading Y axes with `AxisValueLabel(centered: false, anchor: .trailing)`. Categorical labels otherwise default to placement between axis values, which left names half a row above their bars even after moving the station axis left. Swift tree-sitter syntax validation and `git diff --check` pass. No iOS build or rendered-layout validation ran on Linux. In Xcode or on an iPhone, confirm names align with bar centers for Home/Outside, a single station, multiple stations, all three station measures, long names, and larger text sizes.
+November 13 horizontal chart labels: native simulator verification now supersedes the earlier axis-only/source-only attempt. Both affected charts use explicit category positions from the plot, with reserved label/value gutters and Dynamic Type spacing. Verified 27 final chart screenshots (77 category frames; maximum center error 0.5 points) on iPhone 17e / iOS 26.5 and iPhone SE (3rd generation) / iOS 18.3.1, covering all three station measures, multiple/long/Unspecified names, a single station, Home/Outside, default/larger text, and narrow portrait layout. Final uninstrumented app: 84 native tests pass, zero failures. [Before/after screenshots, complete matrix, isolation details, and measurements](docs/chart-alignment/README.md).
+
+The notes below are historical records from earlier Linux sessions; their toolchain and unverified-environment statements describe those sessions, not the current chart verification. Any unrelated scenarios remain unverified unless specifically recorded above.
 
 Development environment: Linux with an official temporary Swift 6.0.3 toolchain. The app itself has no toolchain-download dependency.
 

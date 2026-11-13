@@ -190,30 +190,30 @@ struct ChargingSourceChart: View {
     }
     var body: some View {
         ReportCard(title: "Home versus outside", note: "Completed cycles only. Home spending is estimated at saved prices; outside spending is the actual amount paid.") {
-            Chart(sources) { source in
-                BarMark(x: .value("kWh", Numbers.double(source.energy)), y: .value("Source", source.id))
-                    .foregroundStyle(by: .value("Source", source.id))
+            HorizontalComparisonChart(
+                rows: sources.map {
+                    HorizontalComparisonRow(id: $0.id, label: $0.id, value: Numbers.double($0.energy),
+                                            color: $0.id == "Home" ? LedgerStyle.accent : LedgerStyle.outside)
+                },
+                unit: "kWh", labelWidth: 60
+            )
+            metricPair("Outside energy share", LedgerStyle.number(statistics.outsideEnergyShare),
+                       "Outside spending share", LedgerStyle.number(statistics.outsideCostShare), unit: "%")
+            metricPair("Home average price", LedgerStyle.number(statistics.homePricePerKWh, digits: 2),
+                       "Outside average price", LedgerStyle.number(statistics.outsidePricePerKWh, digits: 2), unit: "AMD/kWh")
+        }
+    }
+
+    private func metricPair(_ first: String, _ firstValue: String,
+                            _ second: String, _ secondValue: String, unit: String) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                Metric(title: first, value: firstValue, unit: unit).fixedSize(horizontal: true, vertical: false)
+                Metric(title: second, value: secondValue, unit: unit).fixedSize(horizontal: true, vertical: false)
             }
-            .chartForegroundStyleScale(["Home": LedgerStyle.accent, "Outside": LedgerStyle.outside])
-            .chartLegend(.hidden)
-            .chartYAxis {
-                AxisMarks(preset: .aligned, position: .leading, values: sources.map(\.id)) { value in
-                    // Categorical marks already sit at bar centers; do not shift labels between them.
-                    AxisValueLabel(centered: false, anchor: .trailing) {
-                        if let name = value.as(String.self) {
-                            Text(name).font(.caption)
-                        }
-                    }
-                }
-            }
-            .frame(height: 95)
-            HStack {
-                Metric(title: "Outside energy share", value: LedgerStyle.number(statistics.outsideEnergyShare), unit: "%")
-                Metric(title: "Outside spending share", value: LedgerStyle.number(statistics.outsideCostShare), unit: "%")
-            }
-            HStack {
-                Metric(title: "Home average price", value: LedgerStyle.number(statistics.homePricePerKWh, digits: 2), unit: "AMD/kWh")
-                Metric(title: "Outside average price", value: LedgerStyle.number(statistics.outsidePricePerKWh, digits: 2), unit: "AMD/kWh")
+            VStack(alignment: .leading, spacing: 16) {
+                Metric(title: first, value: firstValue, unit: unit)
+                Metric(title: second, value: secondValue, unit: unit)
             }
         }
     }
@@ -233,8 +233,6 @@ enum BrandMeasure: String, CaseIterable {
 struct BrandComparisonChart: View {
     let brands: [BrandSummary]
     @State private var measure = BrandMeasure.energy
-    @ScaledMetric(relativeTo: .caption) private var stationLabelWidth: CGFloat = 90
-    @ScaledMetric(relativeTo: .caption) private var stationRowHeight: CGFloat = 44
     private var sorted: [BrandSummary] {
         brands.sorted { measure.value($0) == measure.value($1) ? $0.id < $1.id : measure.value($0) > measure.value($1) }
     }
@@ -245,30 +243,122 @@ struct BrandComparisonChart: View {
             }
             .pickerStyle(.segmented)
             // IDs distinguish an unassigned station from one literally named “Unspecified”.
-            Chart(sorted) { brand in
-                BarMark(x: .value(measure.rawValue, measure.value(brand)), y: .value("Station", brand.id))
-                    .foregroundStyle(LedgerStyle.outside)
-                    .annotation(position: .trailing) {
-                        Text(measure == .sessions ? String(brand.sessions) : LedgerStyle.number(measure == .energy ? brand.energy : brand.cost))
-                            .font(.caption2)
-                    }
-            }
-            .chartYAxis {
-                // Categorical marks already sit at bar centers; do not shift labels between them.
-                AxisMarks(preset: .aligned, position: .leading, values: sorted.map(\.id)) { value in
-                    AxisValueLabel(centered: false, anchor: .trailing) {
-                        if let key = value.as(String.self), let brand = brands.first(where: { $0.id == key }) {
-                            Text(brand.name)
-                                .font(.caption)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: stationLabelWidth, alignment: .trailing)
-                                .fixedSize(horizontal: false, vertical: true)
+            HorizontalComparisonChart(
+                rows: sorted.map { brand in
+                    HorizontalComparisonRow(
+                        id: brand.id, label: brand.name, value: measure.value(brand),
+                        color: LedgerStyle.outside,
+                        valueLabel: measure == .sessions ? String(brand.sessions)
+                            : LedgerStyle.number(measure == .energy ? brand.energy : brand.cost)
+                    )
+                },
+                unit: measure.rawValue
+            )
+        }
+    }
+}
+
+private struct HorizontalComparisonRow: Identifiable {
+    let id: String
+    let label: String
+    let value: Double
+    let color: Color
+    var valueLabel: String? = nil
+}
+
+/// Both text columns use the bar's actual categorical position in the plot, rather
+/// than axis-label placement (which can anchor a label at a category boundary).
+private struct HorizontalComparisonChart: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let rows: [HorizontalComparisonRow]
+    let unit: String
+    @ScaledMetric(relativeTo: .caption) var labelWidth: CGFloat = 90
+    @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = 52
+    @ScaledMetric(relativeTo: .caption2) private var axisHeight: CGFloat = 28
+    private let columnSpacing: CGFloat = 8
+    private var upperBound: Double { max(rows.map(\.value).max() ?? 0, 1) }
+
+    var body: some View {
+        GeometryReader { container in
+            let categoryWidth = min(labelWidth, container.size.width * 0.34)
+            HStack(spacing: columnSpacing) {
+                Color.clear.frame(width: categoryWidth)
+                Chart(rows) { row in
+                    BarMark(x: .value(unit, row.value), y: .value("Category", row.id), width: .ratio(0.65))
+                        .foregroundStyle(row.color)
+                        .accessibilityLabel(row.label)
+                        .accessibilityValue("\(row.valueLabel ?? row.value.formatted()) \(unit)")
+                }
+                .chartYScale(domain: rows.map(\.id))
+                .chartXScale(domain: 0...upperBound)
+                .chartYAxis(.hidden)
+                .chartXAxis {
+                    if dynamicTypeSize >= .xxxLarge {
+                        // Two endpoints stay readable when larger type narrows the plot.
+                        AxisMarks(values: [0, upperBound]) { tick in
+                            AxisGridLine()
+                            numericAxisLabel(tick)
+                        }
+                    } else {
+                        AxisMarks(values: .automatic(desiredCount: 3)) { tick in
+                            AxisGridLine()
+                            numericAxisLabel(tick)
                         }
                     }
                 }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        if let plot = proxy.plotFrame {
+                            let frame = geometry[plot]
+                            ForEach(rows) { row in
+                                if let y = proxy.position(forY: row.id) {
+                                    Text(row.label)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.trailing)
+                                        .lineLimit(3)
+                                        .frame(width: categoryWidth, alignment: .trailing)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .position(x: frame.minX - columnSpacing - categoryWidth / 2,
+                                                  y: frame.minY + y)
+                                    if let value = row.valueLabel {
+                                        Text(value)
+                                            .font(.caption2).monospacedDigit()
+                                            .fixedSize()
+                                            .frame(width: 0, alignment: .leading)
+                                            .position(x: frame.maxX + columnSpacing, y: frame.minY + y)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
+                // Intrinsic text widths reserve room for every value, including the
+                // largest formatted AMD amount at the current Dynamic Type size.
+                if rows.contains(where: { $0.valueLabel != nil }) {
+                    ZStack {
+                        ForEach(rows) { row in
+                            if let value = row.valueLabel {
+                                Text(value).font(.caption2).monospacedDigit()
+                            }
+                        }
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .hidden()
+                    .accessibilityHidden(true)
+                }
             }
-            .frame(height: max(140, CGFloat(brands.count) * stationRowHeight))
         }
+        // Includes a separate axis band so the final category cannot touch the ticks.
+        .frame(height: CGFloat(rows.count) * rowHeight + axisHeight)
     }
+
+    private func numericAxisLabel(_ tick: AxisValue) -> some AxisMark {
+        AxisValueLabel(format: FloatingPointFormatStyle<Double>.number.notation(.compactName),
+                       anchor: tick.as(Double.self) == 0 ? .topLeading : .topTrailing)
+            .font(.caption2)
+    }
+
 }
