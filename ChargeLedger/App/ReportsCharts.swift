@@ -223,6 +223,8 @@ enum BrandMeasure: String, CaseIterable {
 struct BrandComparisonChart: View {
     let brands: [BrandSummary]
     @State private var measure = BrandMeasure.energy
+    @ScaledMetric(relativeTo: .caption) private var stationLabelWidth: CGFloat = 90
+    @ScaledMetric(relativeTo: .caption) private var stationRowHeight: CGFloat = 44
     private var sorted: [BrandSummary] {
         brands.sorted { measure.value($0) == measure.value($1) ? $0.id < $1.id : measure.value($0) > measure.value($1) }
     }
@@ -242,13 +244,21 @@ struct BrandComparisonChart: View {
                     }
             }
             .chartYAxis {
-                AxisMarks { value in
-                    AxisValueLabel {
-                        if let key = value.as(String.self), let brand = brands.first(where: { $0.id == key }) { Text(brand.name) }
+                // Keep names outside the plot and vertically centered on their bars.
+                AxisMarks(preset: .aligned, position: .leading, values: sorted.map(\.id)) { value in
+                    AxisValueLabel(anchor: .trailing) {
+                        if let key = value.as(String.self), let brand = brands.first(where: { $0.id == key }) {
+                            Text(brand.name)
+                                .font(.caption)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: stationLabelWidth, alignment: .trailing)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
-            .frame(height: CGFloat(max(140, brands.count * 42)))
+            .frame(height: max(140, CGFloat(brands.count) * stationRowHeight))
         }
     }
 }
