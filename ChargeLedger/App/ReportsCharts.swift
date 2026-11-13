@@ -196,6 +196,16 @@ struct ChargingSourceChart: View {
             }
             .chartForegroundStyleScale(["Home": LedgerStyle.accent, "Outside": LedgerStyle.outside])
             .chartLegend(.hidden)
+            .chartYAxis {
+                AxisMarks(preset: .aligned, position: .leading, values: sources.map(\.id)) { value in
+                    // Categorical marks already sit at bar centers; do not shift labels between them.
+                    AxisValueLabel(centered: false, anchor: .trailing) {
+                        if let name = value.as(String.self) {
+                            Text(name).font(.caption)
+                        }
+                    }
+                }
+            }
             .frame(height: 95)
             HStack {
                 Metric(title: "Outside energy share", value: LedgerStyle.number(statistics.outsideEnergyShare), unit: "%")
@@ -244,9 +254,9 @@ struct BrandComparisonChart: View {
                     }
             }
             .chartYAxis {
-                // Keep names outside the plot and vertically centered on their bars.
+                // Categorical marks already sit at bar centers; do not shift labels between them.
                 AxisMarks(preset: .aligned, position: .leading, values: sorted.map(\.id)) { value in
-                    AxisValueLabel(anchor: .trailing) {
+                    AxisValueLabel(centered: false, anchor: .trailing) {
                         if let key = value.as(String.self), let brand = brands.first(where: { $0.id == key }) {
                             Text(brand.name)
                                 .font(.caption)
