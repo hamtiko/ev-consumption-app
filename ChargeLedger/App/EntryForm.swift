@@ -73,6 +73,7 @@ private struct ChargingForm: View {
     @State private var rateT2 = "43.48"
     @State private var selectedSessionID: UUID?
     @State private var earlier: [SessionDraft] = []
+    @State private var sessionToReveal: UUID?
     @State private var loaded = false
     @State private var error: String?
     @FocusState private var focused: InputField?
@@ -126,7 +127,7 @@ private struct ChargingForm: View {
 
     var body: some View {
         NavigationStack {
-            KeyboardForm(focus: $focused) {
+            KeyboardForm(focus: $focused, scrollTarget: sessionToReveal) {
                 Section {
                     DatePicker("Date and time", selection: $date, in: ...Date.now, displayedComponents: [.date, .hourAndMinute])
                 }
@@ -351,7 +352,9 @@ private struct ChargingForm: View {
             }
             Button {
                 focused = nil
-                earlier.append(SessionDraft(date: date))
+                let session = SessionDraft(date: date)
+                earlier.append(session)
+                sessionToReveal = session.id
             } label: { Label("Add outside session", systemImage: "plus") }
             .buttonStyle(.borderless)
         } header: { Text("Outside charging this cycle") } footer: {
@@ -389,6 +392,7 @@ private struct ChargingForm: View {
                     Text("Included in this entry’s outside total. Saved when you save the cycle.")
                 }
             }
+            .id(session.id)
         }
     }
 

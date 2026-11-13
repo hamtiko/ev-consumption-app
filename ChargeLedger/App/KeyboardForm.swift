@@ -36,11 +36,14 @@ extension View {
 }
 
 struct KeyboardForm<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let focus: FocusState<InputField?>.Binding
+    let scrollTarget: UUID?
     let content: () -> Content
 
-    init(focus: FocusState<InputField?>.Binding, @ViewBuilder content: @escaping () -> Content) {
-        self.focus = focus; self.content = content
+    init(focus: FocusState<InputField?>.Binding, scrollTarget: UUID? = nil,
+         @ViewBuilder content: @escaping () -> Content) {
+        self.focus = focus; self.scrollTarget = scrollTarget; self.content = content
     }
 
     var body: some View {
@@ -61,6 +64,15 @@ struct KeyboardForm<Content: View>: View {
                                 Spacer()
                                 Button("Done") { focus.wrappedValue = nil }
                             }
+                        }
+                    }
+                    .task(id: scrollTarget) {
+                        guard let target = scrollTarget else { return }
+                        // Let newly inserted Form sections register their scroll IDs first.
+                        await Task.yield()
+                        guard !Task.isCancelled, focus.wrappedValue == nil else { return }
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                            scroll.scrollTo(target, anchor: .top)
                         }
                     }
                     .task(id: focus.wrappedValue) {
